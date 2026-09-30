@@ -32,3 +32,23 @@ Objetivo: autoridade e sofisticação. A Ludo fala como um family office, não c
 - `numero`: 1 dado oficial monumental (só números confirmados em fonte oficial).
 - `manifesto`: frase de posicionamento da marca (1x por semana no máximo).
 - Carrossel (quando o Make estiver configurado para carrossel): capa `editorial` + 3-5 `pontos`/`numero` + fechamento `manifesto`.
+
+## Programação semanal (formatos)
+| Dia | Formato principal | Pilar sugerido |
+|---|---|---|
+| Segunda | Carrossel (5 slides) | Contexto & Mercado (notícia da semana → impacto → solução) |
+| Terça | Feed (1 arte) | Estrutura & Patrimônio |
+| Quarta | Reels (vídeo 9:16, ~12 s) | Proteção ou Gestão do consultório |
+| Quinta | Carrossel (5 slides) | Gestão do consultório / educativo |
+| Sexta | Carrossel "Resumo da Semana" (5 slides) | Contexto & Mercado (4 fatos + fechamento) |
+| Sábado | Reels | Manifesto & Marca ou dica rápida |
+| Domingo | Feed (manifesto ou reflexão) | Manifesto & Marca |
+Stories: 1 por dia, publicado ~2 h depois do post principal, convidando para ver o post do dia (arte 9:16 com o mesmo título).
+O PDCA pode alterar esta grade conforme os resultados.
+
+## Especificações técnicas
+- Feed: 1 JPEG 1080x1350 → "Link da imagem".
+- Carrossel: SEMPRE 5 JPEGs 1080x1350 (capa `editorial` com swipe=True e page="01/05"; slides 02-04 com conteúdo; 05 fechamento `manifesto` ou CTA) → "Link da imagem" (slide 1) + "Slide 2" a "Slide 5".
+- Reels: set_formato("story"); 3 a 5 quadros 1080x1920 → `reel(frames, "posts/...mp4")` → "Link do vídeo" (usar URL jsDelivr com o hash do commit: https://cdn.jsdelivr.net/gh/ludogroup/ludo-instagram@<sha>/posts/<arquivo>.mp4); capa = primeiro quadro em JPEG → "Link da imagem" (raw GitHub).
+- Story: set_formato("story"); 1 JPEG 1080x1920 → "Link da imagem". Sem legenda (a API não publica stickers, links nem enquetes em Stories).
+- Links de imagens (JPEG): https://raw.githubusercontent.com/ludogroup/ludo-instagram/main/posts/<arquivo>.jpg
