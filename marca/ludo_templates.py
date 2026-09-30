@@ -185,8 +185,8 @@ def numero(label, big, caption, body=None, foot=None):
     d.line([M, 150, M + 56, 150], fill=CARAMEL, width=2)
     spaced(d, M, 170, label, font("sans-sb", 20), G2)
     fbig = font("display", 250)
-    d.text((M - 10, 320), big, font=fbig, fill=OFF)
-    y = 660
+    d.text((M - 10, 300), big, font=fbig, fill=OFF)
+    y = 700
     for l in caption:
         rich_line(d, M, y, l, 50, OFF, _h("8fa5ff")); y += 64
     if body:
