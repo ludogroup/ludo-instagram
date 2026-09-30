@@ -14,8 +14,9 @@
 Degradê de marca: #5271ff (canto superior esquerdo) → #00214d → quase preto (canto inferior direito).
 
 ## Tipografia
-Sem serifa geométrica (Poppins). Frases de impacto em caixa alta com letras espaçadas,
-alternando peso leve e negrito (ex.: "O SEU **SUCESSO** É O NOSSO **OBJETIVO**").
+- Títulos: Playfair Display (serifada), com palavra-chave em itálico azul.
+- Textos e selos: Manrope; selos em caixa alta com letras espaçadas.
+- Arquivos em `marca/fontes/`. Layouts prontos em `marca/ludo_templates.py`; linha editorial em `marca/ESTRATEGIA.md`.
 
 ## Logos
 - `logo-branco-transparente.png` – usar sobre fundos escuros/azuis (padrão nos posts)
