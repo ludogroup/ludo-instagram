@@ -75,10 +75,11 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
 Stories: NÃO entram na fila (o Make não publica Stories; um item "Story" seria publicado no feed por engano).
 
 ## Horários (janelas do publicador)
-O Make verifica a fila de hora em hora só dentro de 4 janelas (economia de operações no plano grátis):
-**07h–09h, 12h–14h, 18h–20h, 21h–23h** (America/Sao_Paulo). Agende o post no início da janela
-(07:05, 12:05, 18:05 ou 21:05) e use a mesma faixa em "Faixa testada". Fora das janelas o post só sai na
-janela seguinte.
+O Make verifica a fila só dentro de 4 janelas (economia de operações no plano grátis):
+**07h–09h, 12h–14h, 18h–20h, 21h–23h** (America/Sao_Paulo). Ele roda exatamente no início de cada janela
+(07:00, 12:00, 18:00, 21:00) e depois de hora em hora até o fim dela. Agende o post 5 minutos antes do
+início da janela (06:55, 11:55, 17:55 ou 20:55) para sair na hora cheia, e use a mesma faixa em
+"Faixa testada". Fora das janelas o post só sai na janela seguinte.
 
 ## Especificações técnicas
 - Feed: 1 JPEG 1080x1350 → "Link da imagem".
