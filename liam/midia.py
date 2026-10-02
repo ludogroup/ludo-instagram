@@ -715,7 +715,11 @@ def cmd_corte(a):
     modo, pts, frac = a.modo, None, None
     if modo != "moldura":
         if W - cw > 8:
-            pts, frac = trilha_rosto(a.trecho, W, H, cw, pre, de, dur)
+            try:
+                pts, frac = trilha_rosto(a.trecho, W, H, cw, pre, de, dur)
+            except ImportError:                                  # sem OpenCV: moldura (ou recorte central)
+                print("[aviso] OpenCV ausente: sem detecção de rosto", file=sys.stderr)
+                pts, frac = None, 0.0
             modo = "moldura" if (a.modo == "auto" and (pts is None or frac < 0.35)) else "recorte"
         else:
             modo = "recorte"
