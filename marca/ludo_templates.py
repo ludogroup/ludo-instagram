@@ -313,7 +313,7 @@ def grafico(label, title, dados, unidade="", fonte=None, foot=None, dark=False, 
         destaque = [destaque]
     destaque = {i % n for i in destaque}
     vals = [v for _, v in dados]
-    y0, y1 = y + 110, H - BOT - 300          # área do gráfico
+    y0, y1 = y + 110, H - BOT - 330          # área do gráfico (deixa espaço para fonte e paginação)
     x0, x1 = M, W - M
     fv, fr = font("sans-sb", 28), font("sans-m", 21)
     ov = Image.new("RGBA", img.size, (0, 0, 0, 0)); od = ImageDraw.Draw(ov)
@@ -367,7 +367,7 @@ def grafico(label, title, dados, unidade="", fonte=None, foot=None, dark=False, 
     img.alpha_composite(ov)
     d = ImageDraw.Draw(img)
     if fonte:
-        d.text((M, y1 + 80), f"Fonte: {fonte}", font=font("sans", 20), fill=soft)
+        d.text((M, y1 + 76), f"Fonte: {fonte}", font=font("sans", 20), fill=soft)
     _footer(img, d, dark, foot, page)
     return img.convert("RGB")
 
