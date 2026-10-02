@@ -12,9 +12,12 @@ for f in liam/midia.py marca/ludo_templates.py marca/logo-branco-transparente.pn
          marca/fontes/playfair-display-400-normal.ttf marca/fontes/playfair-display-400-italic.ttf; do
   curl -sSfL --retry 2 -o "$D/$f" "$B/$f" || { echo "ERRO ao baixar $f"; exit 1; }
 done
-python3 -c "import cv2" 2>/dev/null || python3 -m pip install -q --user opencv-python-headless 2>/dev/null \
-  || python3 -m pip install -q --user --break-system-packages opencv-python-headless
-python3 -c "import numpy, PIL, cv2; print('python ok: numpy', numpy.__version__, '| pillow', PIL.__version__, '| opencv', cv2.__version__)"
+# OpenCV vai para $D/pylib (o midia.py inclui essa pasta sozinho); numpy e Pillow já vêm no Mac
+export PYTHONPATH="$D/pylib"
+python3 -c "import cv2" 2>/dev/null || python3 -m pip install -q --no-deps --target "$D/pylib" opencv-python-headless
+python3 -c "import numpy, PIL" 2>/dev/null || python3 -m pip install -q --target "$D/pylib" numpy pillow
+python3 -c "import numpy, PIL, cv2; print('python ok: numpy', numpy.__version__, '| pillow', PIL.__version__, '| opencv', cv2.__version__)" \
+  || { echo "ERRO: bibliotecas Python"; exit 1; }
 Y="$HOME/.cache/liam-modelos/face_detection_yunet_2023mar.onnx"
 [ -s "$Y" ] || curl -sSfL --retry 2 -o "$Y" \
   https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx \

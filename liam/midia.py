@@ -48,6 +48,8 @@ from datetime import datetime
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
+if (RAIZ / "pylib").is_dir():                 # bibliotecas instaladas por liam/preparar_mac.sh
+    sys.path.insert(0, str(RAIZ / "pylib"))
 FONTES = RAIZ / "marca" / "fontes"
 MODELOS = Path(os.environ.get("LIAM_MODELOS", Path.home() / ".cache" / "liam-modelos"))
 URL_MODELOS = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models"
