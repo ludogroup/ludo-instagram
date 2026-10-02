@@ -33,9 +33,11 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
   - Séries recorrentes: "Plantão de mercado" (contexto), "Prontuário financeiro" (casos hipotéticos de médicos),
     "Resumo da Semana" (sexta).
   - Bastidores e eventos com pessoas reais (sócios, time, clientes que autorizaram).
-- **Humanizar**: fotos e vídeos reais da pasta `fotos/` (layout `foto` e `reel_de_video`). Nos dados da conta,
-  posts com pessoas/eventos tiveram alcance mediano ~10× maior que as artes recentes (comparação bruta, ainda
-  misturada com a época; o LIAM está testando). Sempre que houver material novo, use.
+- **Humanizar**: fotos e vídeos reais da equipe, catalogados no 🎞️ Banco de mídia (Notion) pela rotina
+  "LIAM – Mídias da equipe": fotos tratadas em `fotos/` (layout `foto`) e cortes de vídeo prontos em
+  `fotos/cortes/` (Reels legendados, com título, rodapé e capa). Nos dados da conta, posts com pessoas/eventos
+  tiveram alcance mediano ~10× maior que as artes recentes (comparação bruta, ainda misturada com a época; o LIAM
+  está testando). Sempre que houver material disponível, use.
 - Rico em dados: cada post traz ao menos 1 número, regra ou data verificável, com "Fonte: ..." na legenda.
 
 ## Estética (obrigatório)
@@ -60,7 +62,7 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
 3. Proteção – seguros, previdência, reserva, riscos da carreira médica (Care, People).
 4. Gestão do consultório/clínica – fluxo de caixa, BPO, CFO, meios de pagamento, crédito (Company, Pay, CredEx).
 5. Manifesto & Marca – posicionamento, valores, ecossistema.
-6. Bastidores & Eventos – pessoas reais, eventos, feiras, time (com fotos/vídeos de `fotos/`).
+6. Bastidores & Eventos – pessoas reais, eventos, palestras, feiras, time (fotos e cortes do Banco de mídia).
 
 ## Grade semanal (ponto de partida; o LIAM altera quando os dados mostrarem)
 | Dia | Formato principal | Pilar sugerido |
@@ -86,7 +88,9 @@ início da janela (06:55, 11:55, 17:55 ou 20:55) para sair na hora cheia, e use 
 - Carrossel: SEMPRE 5 JPEGs 1080x1350 (capa `editorial` ou `foto` com swipe=True e page="01/05"; slides 02-04 com
   conteúdo; 05 fechamento `manifesto` ou CTA) → "Link da imagem" (slide 1) + "Slide 2" a "Slide 5".
 - Reels de artes: set_formato("story"); 3 a 5 quadros 1080x1920 → `reel(frames, "posts/...mp4")`.
-- Reels com vídeo real: `reel_de_video("fotos/<video>", "posts/...mp4", title=[...], duracao=...)`.
+- Reels com vídeo real: corte pronto do Banco de mídia, usado como está (Link → "Link do vídeo", Capa → "Link da
+  imagem", Layout "video"); ou `reel_de_video("fotos/<video>", "posts/...mp4", title=[...], duracao=...)`.
+- Vídeos: até 18 MB por arquivo (o jsDelivr não serve arquivos acima de 20 MB).
 - Reels → "Link do vídeo" (URL jsDelivr com o hash do commit:
   https://cdn.jsdelivr.net/gh/ludogroup/ludo-instagram@<sha>/posts/<arquivo>.mp4); capa = primeiro quadro em JPEG
   → "Link da imagem" (raw GitHub).
@@ -94,8 +98,18 @@ início da janela (06:55, 11:55, 17:55 ou 20:55) para sair na hora cheia, e use 
 - Fila: preencher sempre Pilar, Layout, Gancho, Origem, Tema / empresa, Faixa testada e Teste A/B (hipótese).
   São as variáveis que o LIAM aprende.
 
-## Fotos e vídeos da equipe (`fotos/`)
-- A equipe sobe arquivos em github.com/ludogroup/ludo-instagram → pasta `fotos` → "Add file" → "Upload files".
-- Nome sugerido: `AAAA-MM-DD-evento-descricao.jpg` (ou .mp4). Contexto do evento: registrar em 💡 Sugestões
-  Instagram (Tipo, Detalhes / links) para a legenda usar só o que for informado.
-- Fotos anexadas apenas no Notion não podem ser usadas pelo LIAM (o ambiente não baixa anexos do Notion).
+## Fotos e vídeos da equipe (pasta do Google Drive → Banco de mídia)
+- A equipe coloca fotos e vídeos (inclusive palestras inteiras) na pasta do Google Drive "Fotos e Vídeos Luis - LIAM",
+  uma subpasta por evento: `AAMMDD_Evento_Tema` (ex.: `260926_Palestra Dengo_O Médico CEO`). Opcional: um
+  `contexto.txt` na subpasta com quem aparece e o que foi o evento. Nomes só entram na legenda se estiverem
+  escritos ali ou em 💡 Sugestões Instagram.
+- A rotina "LIAM – Mídias da equipe" (11:47 e 17:47, com o Mac ligado e o app Claude aberto) trata o que for novo
+  com `liam/midia.py`:
+  - fotos: JPEG sem EXIF/GPS em `fotos/`, com foco (rosto), qualidade e descrição; as melhores entram no Banco de
+    mídia como "disponível", as fracas como "descartado";
+  - vídeos: transcrição (Whisper), 3 a 6 cortes de 20 a 60 s por hora de conteúdo, Reels 1080x1920 com recorte que
+    acompanha o rosto, legendas na identidade Ludo, título e capa em `fotos/cortes/`; cópia dos cortes em
+    `_LIAM/cortes` dentro da própria pasta do Drive (a equipe vê o resultado).
+- A rotina diária escolhe no Banco de mídia (Status "disponível") e marca o item como "usado" ao agendar o post.
+- O repositório é público: só material adequado ao Instagram e com autorização de quem aparece.
+  Arquivos anexados no Notion não são lidos pelo LIAM.

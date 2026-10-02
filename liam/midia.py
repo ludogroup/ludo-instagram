@@ -11,7 +11,8 @@ Fluxo (rotina "LIAM – Mídias da equipe"):
            para a nuvem -> fotos/cortes/ no GitHub + Banco de mídia.
 
 Comandos que rodam no Mac (shell do Cowork: python3 + ffmpeg; cada chamada tem no máximo ~180 s):
-  listar <pasta>                       inventário (ignora pastas "_LIAM..." e arquivos ocultos)
+  listar <pasta>                       inventário + textos de contexto (.txt/.md) da equipe por pasta
+                                       (ignora pastas "_LIAM..." e arquivos ocultos)
   audio <video> <saida.opus> [--de S --ate S]
                                        áudio para transcrever (Opus 24 kbps mono: ~11 MB por hora)
   trecho <video> <ini_s> <fim_s> <saida.mp4> [--altura-max 1440] [--preset veryfast]
@@ -161,12 +162,20 @@ def _baixar(url, destino):
 # =========================================================================== inventário (Mac)
 def cmd_listar(a):
     raiz = Path(achar(a.pasta))
-    itens = []
+    itens, contextos = [], {}
     for p in sorted(raiz.rglob("*")):
         rel = p.relative_to(raiz)
         if not p.is_file() or any(x.startswith((".", "_LIAM")) for x in rel.parts):
             continue
         ext = p.suffix.lower()
+        if ext in (".txt", ".md"):                 # contexto escrito pela equipe (quem aparece, o que foi o evento)
+            try:
+                texto = p.read_text(encoding="utf-8", errors="replace").strip()
+            except OSError:
+                texto = ""
+            if texto:
+                contextos[unicodedata.normalize("NFC", str(rel))] = texto[:3000]
+            continue
         tipo = "foto" if ext in EXT_FOTO else "video" if ext in EXT_VIDEO else None
         if not tipo:
             continue
@@ -183,7 +192,7 @@ def cmd_listar(a):
             except SystemExit:
                 item["erro"] = "não abriu (arquivo só na nuvem ou corrompido?)"
         itens.append(item)
-    print(json.dumps(itens, ensure_ascii=False, indent=1))
+    print(json.dumps({"arquivos": itens, "contextos": contextos}, ensure_ascii=False, indent=1))
 
 
 # =========================================================================== áudio, trechos (Mac)
@@ -489,8 +498,10 @@ NUMERO = re.compile(r"(?:R\$\s?)?\d+(?:[.,]\d+)*(?:\s?%|\s(?:mil|milhões|milhã
                     r"horas|vezes|médicos)\b)?")
 ESTILO_ASS = ("Style: Legenda,Manrope ExtraLight,60,&H00FFFFFF,&H00FFFFFF,&H004D2100,&H78000000,-1,0,0,0,"
               "100,100,0.5,0,1,3.2,1.5,2,90,90,500,1")
+UNIDADES = {"%", "mil", "milhões", "milhão", "bilhões", "bilhão", "anos", "meses", "dias", "horas", "vezes",
+            "médicos", "pacientes", "reais", "por", "pontos"}
 CURTAS = {"o", "a", "os", "as", "e", "é", "de", "do", "da", "em", "no", "na", "um", "uma", "que", "se", "por", "para",
-          "com", "ao", "à", "dos", "das", "nos", "nas", "eu", "me", "te", "seu", "sua", "mais", "mas"}
+          "com", "ao", "à", "dos", "das", "nos", "nas", "eu", "me", "te", "seu", "sua", "mais", "mas", "r$"}
 
 
 def _ts(t):
@@ -501,27 +512,31 @@ def _ts(t):
 
 
 def _linhas(texto, max_chars=24):
-    linhas, atual = [], ""
+    """Quebra em linhas de até max_chars sem terminar linha em artigo/preposição (a palavra curta desce)."""
+    linhas, atual = [], []
     for p in texto.split():
-        if atual and len(atual) + 1 + len(p) > max_chars:
-            linhas.append(atual)
-            atual = p
+        if atual and len(" ".join(atual + [p])) > max_chars:
+            desce = []
+            if len(atual) > 1 and re.fullmatch(r"(R\$)?\d[\d.,]*", atual[-1]) and \
+                    p.lower().strip(",.;:!?") in UNIDADES:          # "60 horas" fica junto
+                desce.insert(0, atual.pop())
+            while (len(atual) > 1 and atual[-1].lower().strip(",.;:!?") in CURTAS
+                   and len(" ".join(atual[:-1])) >= 10):           # não deixa a linha de cima minúscula
+                desce.insert(0, atual.pop())
+            linhas.append(" ".join(atual))
+            atual = desce + [p]
         else:
-            atual = f"{atual} {p}".strip()
+            atual.append(p)
     if atual:
-        linhas.append(atual)
+        linhas.append(" ".join(atual))
     return linhas
 
 
 def _quebrar(texto, max_chars=24):
-    """Blocos de até 2 linhas: corta primeiro nas frases (. ! ?) e evita terminar linha em artigo/preposição."""
+    """Blocos de até 2 linhas, cortando primeiro nas frases (. ! ?)."""
     blocos = []
     for frase in re.split(r"(?<=[.!?…])\s+", texto.strip()):
         linhas = _linhas(frase, max_chars)
-        for i in range(len(linhas) - 1):
-            ps = linhas[i].split()
-            if len(ps) > 1 and ps[-1].lower() in CURTAS and len(linhas[i + 1]) + len(ps[-1]) < max_chars + 5:
-                linhas[i], linhas[i + 1] = " ".join(ps[:-1]), ps[-1] + " " + linhas[i + 1]
         blocos += [linhas[i:i + 2] for i in range(0, len(linhas), 2)]
     return [b for b in blocos if b]
 

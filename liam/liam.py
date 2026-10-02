@@ -306,7 +306,7 @@ def montar_posts(fila, metricas, ref, excluir):
         idade_med = ((p["met_col"] or ref) - p["data"]).total_seconds() / 86400
         idade_ref = max((ref - p["data"]).total_seconds() / 86400, 0)
         maduro = idade_med >= MATURIDADE_DIAS
-        humano = ("sim" if ("foto" in p["layout"] or p["gancho"] == "Bastidores"
+        humano = ("sim" if ("foto" in p["layout"] or "video" in p["layout"] or p["gancho"] == "Bastidores"
                             or p["pilar"] == "Bastidores & Eventos") else "não")
         if p["fonte"] == "Histórico":   # inferido: vídeos do perfil eram falas/lives; fotos de eventos
             humano = "sim" if (p["formato"] == "Reels" or HUMANO_RE.search(p["legenda"])) else "não"

@@ -43,6 +43,21 @@ SELECT m."Post ID" AS post_id, m."date:Data do post:start" AS data_post, m.Tipo 
 SELECT c.Perfil AS perfil, c."Post ID" AS post_id, c."date:Data:start" AS data, c.Tipo AS tipo, c.Curtidas AS curtidas, c."Comentários" AS comentarios, c."Visualizações" AS views, substr(replace(c.Legenda, char(10), ' '), 1, 110) AS legenda, c.Link AS link FROM "collection://cc55fb12-4ac8-4bc4-bb2d-460eda105553" c JOIN (SELECT "Post ID" AS pid, MAX("date:Coletado em:start") AS mx FROM "collection://cc55fb12-4ac8-4bc4-bb2d-460eda105553" GROUP BY "Post ID") x ON c."Post ID" = x.pid AND c."date:Coletado em:start" = x.mx WHERE c."date:Data:start" >= date('now','-60 days')
 ```
 
+## Mídia da equipe (`liam/midia.py`)
+
+Rotina "LIAM – Mídias da equipe" (11:47 e 17:47; precisa do Mac ligado com o app Claude aberto, porque a
+pasta do Google Drive "Fotos e Vídeos Luis - LIAM" está no Mac). Detalhes dos comandos no cabeçalho do script.
+
+- No Mac (shell do Cowork, chamadas de até ~180 s; prepare com `liam/preparar_mac.sh`):
+  `listar` (inventário + `contexto.txt` da equipe), `audio` (Opus leve), `trecho` (HDR do iPhone vira SDR),
+  `juntar` e `corte`.
+- Na nuvem: `foto` (JPEG sem EXIF, foco pelo rosto com YuNet, nitidez, quase duplicadas), `folha` (folhas de
+  contato para revisão), `transcrever` (Whisper via sherpa-onnx + detector de voz Silero).
+- Cortes: 1080x1920, recorte que acompanha o rosto (ou moldura com fundo desfocado), legendas Manrope com números
+  em azul, título nos primeiros 4 s, rodapé com logo, áudio a -14 LUFS, até 18 MB (limite do jsDelivr: 20 MB).
+- Catálogo: 🎞️ Banco de mídia (Notion, data source 8231cd92-c111-48d9-b673-ccec77f69111). "Arquivo original"
+  guarda o caminho dentro da pasta do Drive; é ele que evita tratar o mesmo arquivo duas vezes.
+
 ## De onde vêm os dados
 
 - Cenário Make **"LIAM – Dados (métricas e concorrentes)"**: insights dos posts próprios
@@ -55,5 +70,5 @@ SELECT c.Perfil AS perfil, c."Post ID" AS post_id, c."date:Data:start" AS data, 
 
 - Poucos posts = muita incerteza: o relatório avisa "fase de exploração" até haver 10 posts LIAM maduros.
 - Concorrentes não têm alcance nem salvamentos (a API não fornece); o índice usa curtidas + 2·comentários.
-- "humano" em posts antigos é inferido pela legenda/formato; nos posts LIAM vem do Layout "foto",
+- "humano" em posts antigos é inferido pela legenda/formato; nos posts LIAM vem do Layout "foto" ou "video",
   do Gancho "Bastidores" ou do Pilar "Bastidores & Eventos".
