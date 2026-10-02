@@ -1,0 +1,5 @@
+# Posts fora da análise do LIAM (testes, duplicados, publicações por engano).
+# Um ID de post do Instagram por linha; o texto depois de # é comentário.
+17925630672421375  # capa duplicada do carrossel de 01/10 (retentativa do Make)
+18092871548169998  # Story publicado no feed por engano em 01/10
+18281696560289349  # teste de integração do Make (30/09)

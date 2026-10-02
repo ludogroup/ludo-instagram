@@ -6,6 +6,10 @@ Formatos: feed/carrossel 1080x1350 (padrão) e story/reels 1080x1920.
 Carrossel: gere cada slide com page="01/05" e swipe=True na capa (editorial).
 Reels: reel([img1, img2, ...], "posts/AAAA-MM-DD-slug.mp4") monta um vídeo 9:16 com transições suaves.
 
+Layouts: editorial, pontos, numero, manifesto, grafico (dados oficiais em barras/linha),
+foto (foto real de pessoas/eventos da pasta fotos/, com véu marinho e título).
+Vídeo real: reel_de_video("fotos/<video>.mp4", "posts/AAAA-MM-DD-slug.mp4", title=[...]).
+
 Uso:
     import sys; sys.path.insert(0, "marca")
     from ludo_templates import *
@@ -218,6 +222,191 @@ def numero(label, big, caption, body=None, foot=None, page=None):
             d.text((M, y), l, font=fb, fill=G2); y += 44
     _footer(img, d, True, foot, page)
     return img.convert("RGB")
+
+
+def fmt_valor(v, unidade="", casas=None):
+    """Número no padrão brasileiro com unidade: fmt_valor(13.75, '%') -> '13,75%'; 'R$' vai antes."""
+    s = f"{v:,.{2 if casas is None else casas}f}"
+    if casas is None and "." in s:
+        s = s.rstrip("0").rstrip(".")          # 13.75 -> 13,75 · 14.50 -> 14,5 · 15.00 -> 15
+    s = s.replace(",", "X").replace(".", ",").replace("X", ".")
+    if unidade.startswith("R$"):
+        return f"{unidade} {s}"
+    return s + unidade
+
+
+def _veu(alpha_topo=0.0, inicio=0.38, alpha_base=0.93, cor=None):
+    """Véu marinho vertical (transparente em cima, denso na base) para textos sobre fotos."""
+    cor = cor or NAVY
+    col = Image.new("L", (1, H))
+    for y in range(H):
+        t = y / H
+        if t < inicio:
+            a = alpha_topo * (1 - t / inicio)
+        else:
+            u = (t - inicio) / (1 - inicio)
+            a = alpha_base * (u ** 1.35)
+        col.putpixel((0, y), int(255 * max(0.0, min(1.0, a))))
+    mask = col.resize((W, H))
+    veu = Image.new("RGBA", (W, H), cor + (0,))
+    veu.putalpha(mask)
+    return veu
+
+
+def _bloco_inferior(img, d, label, title, body, title_size=72):
+    """Selo + título + corpo, alinhados à esquerda e apoiados acima do rodapé."""
+    fb = font("sans-l", 30)
+    corpo = wrap(d, body, fb, W - 2 * M - 60) if body else []
+    altura = (60 if label else 0) + len(title) * int(title_size * 1.18) + (30 + 44 * len(corpo) if corpo else 0)
+    y = img.height - BOT - 220 - altura
+    if label:
+        d.line([M, y, M + 56, y], fill=CARAMEL, width=2)
+        spaced(d, M, y + 18, label, font("sans-sb", 20), G2)
+        y += 60
+    for line in title:
+        rich_line(d, M - 4, y, line, title_size, OFF, _h("aab8ff"))
+        y += int(title_size * 1.18)
+    if corpo:
+        y += 30
+        for l in corpo:
+            d.text((M, y), l, font=fb, fill=G2)
+            y += 44
+
+
+def foto(path, title, label=None, body=None, foot=None, page=None, focus=(0.5, 0.4), swipe=False,
+         title_size=72):
+    """Foto real em tela cheia (pessoas, eventos, bastidores) com véu marinho, título e logo.
+    path: arquivo em fotos/. focus=(x, y), de 0 a 1: ponto da foto que fica no centro do recorte
+    (use a posição dos rostos). Funciona em feed (1080x1350) e story/reels (1080x1920)."""
+    from PIL import ImageOps
+    src = ImageOps.exif_transpose(Image.open(path)).convert("RGB")
+    esc = max(W / src.width, H / src.height)
+    nw, nh = int(src.width * esc + 0.5), int(src.height * esc + 0.5)
+    src = src.resize((nw, nh), Image.LANCZOS)
+    left = int(min(max(focus[0] * nw - W / 2, 0), nw - W))
+    top = int(min(max(focus[1] * nh - H / 2, 0), nh - H))
+    img = src.crop((left, top, left + W, top + H)).convert("RGBA")
+    img.alpha_composite(_veu(alpha_topo=0.35, inicio=0.30 if H > 1400 else 0.36))
+    d = ImageDraw.Draw(img)
+    _bloco_inferior(img, d, label, title, body, title_size)
+    _footer(img, d, True, foot, page, swipe)
+    return img.convert("RGB")
+
+
+def grafico(label, title, dados, unidade="", fonte=None, foot=None, dark=False, page=None,
+            tipo="barras", destaque=None, title_size=60, casas=None):
+    """Gráfico editorial com dados oficiais (sempre cite a fonte).
+    dados: [(rótulo, valor), ...] com até 12 pontos. tipo='barras' (comparação) ou 'linha' (evolução).
+    destaque: índice ou lista de índices realçados em azul (padrão: o último)."""
+    bg = NAVY if dark else PAPER
+    img = Image.new("RGBA", (W, H), bg + (255,)); d = ImageDraw.Draw(img)
+    ink, soft, acc = (OFF, G2, _h("8fa5ff")) if dark else (NAVY, GRAPH, BLUE)
+    d.line([M, 150 + TOP, M + 56, 150 + TOP], fill=CARAMEL, width=2)
+    spaced(d, M, 170 + TOP, label, font("sans-sb", 20), soft)
+    y = 260 + TOP
+    for line in title:
+        rich_line(d, M - 3, y, line, title_size, ink, acc); y += int(title_size * 1.2)
+    n = len(dados)
+    if destaque is None:
+        destaque = [n - 1]
+    elif isinstance(destaque, int):
+        destaque = [destaque]
+    destaque = {i % n for i in destaque}
+    vals = [v for _, v in dados]
+    y0, y1 = y + 110, H - BOT - 300          # área do gráfico
+    x0, x1 = M, W - M
+    fv, fr = font("sans-sb", 28), font("sans-m", 21)
+    ov = Image.new("RGBA", img.size, (0, 0, 0, 0)); od = ImageDraw.Draw(ov)
+    regua = (255, 255, 255, 70) if dark else (0, 33, 77, 60)
+    neutro = (255, 255, 255, 70) if dark else G1 + (255,)
+    realce = _h("8fa5ff") if dark else BLUE
+    if tipo == "barras":
+        lo, hi = min(0.0, min(vals)), max(0.0, max(vals))
+        span = (hi - lo) or 1.0
+        passo = (x1 - x0) / n
+        larg = passo * 0.62
+        zero = y1 - (0 - lo) / span * (y1 - y0) * 0.86
+        for i, (rot, v) in enumerate(dados):
+            cx = x0 + passo * (i + 0.5)
+            topo = zero - v / span * (y1 - y0) * 0.86
+            cor = realce + (255,) if i in destaque else neutro
+            od.rectangle([cx - larg / 2, min(topo, zero), cx + larg / 2, max(topo, zero)], fill=cor)
+            txt = fmt_valor(v, unidade, casas)
+            ty = (topo - 44) if v >= 0 else (topo + 12)
+            d.text((cx - d.textlength(txt, font=fv) / 2, ty), txt, font=fv,
+                   fill=(realce if i in destaque else ink))
+            d.text((cx - d.textlength(rot, font=fr) / 2, y1 + 22), rot, font=fr, fill=soft)
+        od.line([x0, zero, x1, zero], fill=regua, width=2)
+    else:
+        lo, hi = min(vals), max(vals)
+        pad = (hi - lo) * 0.18 or abs(hi) * 0.1 or 1.0
+        lo, hi = lo - pad, hi + pad
+        passo = (x1 - x0 - 60) / max(n - 1, 1)
+        pts = [(x0 + 30 + passo * i, y1 - (v - lo) / (hi - lo) * (y1 - y0)) for i, v in enumerate(vals)]
+        for k in range(4):                    # grade discreta
+            gy = y0 + (y1 - y0) * k / 3
+            od.line([x0, gy, x1, gy], fill=regua[:3] + (30,), width=1)
+        od.line(pts, fill=(ink + (255,)), width=5, joint="curve")
+        cada = max(1, round(n / 6))
+        for i, ((px, py), (rot, v)) in enumerate(zip(pts, dados)):
+            r = 11 if i in destaque else 6
+            od.ellipse([px - r, py - r, px + r, py + r], fill=(realce if i in destaque else ink) + (255,))
+            if i in destaque or i == 0:
+                txt = fmt_valor(v, unidade, casas)
+                tw = d.textlength(txt, font=fv)
+                viz = pts[i - 1] if i > 0 else (pts[i + 1] if n > 1 else (px, py))
+                abaixo = viz[1] < py - 4            # linha chega de cima: rótulo vai abaixo do ponto
+                if i == n - 1 and n > 1:            # último ponto: rótulo à esquerda, longe da borda
+                    tx = px - tw - 22
+                else:
+                    tx = min(max(px - tw / 2, x0), x1 - tw)
+                ty = py + 20 if abaixo else py - 58
+                d.text((tx, ty), txt, font=fv, fill=(realce if i in destaque else ink))
+            if i % cada == 0 or i == n - 1:
+                d.text((px - d.textlength(rot, font=fr) / 2, y1 + 22), rot, font=fr, fill=soft)
+    img.alpha_composite(ov)
+    d = ImageDraw.Draw(img)
+    if fonte:
+        d.text((M, y1 + 80), f"Fonte: {fonte}", font=font("sans", 20), fill=soft)
+    _footer(img, d, dark, foot, page)
+    return img.convert("RGB")
+
+
+def reel_de_video(entrada, saida, title=None, label=None, foot=None, inicio=0.0, duracao=None,
+                  focus_x=0.5, title_size=68):
+    """Reel a partir de vídeo real (pessoas, eventos, bastidores) da pasta fotos/: recorta para
+    1080x1920, mantém o áudio original (ou silêncio) e sobrepõe véu marinho, título e logo.
+    duracao em segundos (recomendado 8 a 60). Requer ffmpeg/ffprobe."""
+    import subprocess, tempfile, json as _json
+    global H, TOP, BOT
+    antigo = (H, TOP, BOT)
+    set_formato("story")
+    try:
+        cam = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        cam.alpha_composite(_veu(alpha_topo=0.30, inicio=0.30))
+        d = ImageDraw.Draw(cam)
+        if title:
+            _bloco_inferior(cam, d, label, title, None, title_size)
+        _footer(cam, d, True, foot)
+        tmp = tempfile.mkdtemp()
+        png = os.path.join(tmp, "overlay.png"); cam.save(png)
+    finally:
+        H, TOP, BOT = antigo
+    info = subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-of", "json", entrada],
+                          capture_output=True, text=True, check=True)
+    tem_audio = any(s.get("codec_type") == "audio" for s in _json.loads(info.stdout).get("streams", []))
+    corte = ["-ss", str(inicio)] + (["-t", str(duracao)] if duracao else [])
+    cmd = ["ffmpeg", "-y", *corte, "-i", entrada, "-loop", "1", "-i", png]
+    if not tem_audio:
+        cmd += ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]
+    filtro = (f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,"
+              f"crop=1080:1920:(in_w-1080)*{focus_x}:(in_h-1920)/2,fps=30,setsar=1[v];"
+              f"[v][1:v]overlay=0:0:shortest=1,format=yuv420p[out]")
+    cmd += ["-filter_complex", filtro, "-map", "[out]", "-map", "0:a" if tem_audio else "2:a",
+            "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-r", "30", "-b:v", "5M",
+            "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-shortest", "-movflags", "+faststart", saida]
+    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return saida
 
 
 def reel(frames, out, secs=3.6, fade=0.7):
