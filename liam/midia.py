@@ -755,7 +755,7 @@ def cmd_corte(a):
     entrada_video = (["-ss", f"{de:.3f}"] if de else []) + (["-t", f"{dur:.3f}"] if (a.ate or de) else []) + \
         ["-i", a.trecho]
     if info["tem_audio"]:
-        audio_in, audio = [], ["-map", "0:a:0", "-af", "highpass=f=70,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100"]
+        audio_in, audio = [], ["-map", "0:a:0", "-af", "highpass=f=70,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo"]
     else:
         audio_in, audio = ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"], ["-map", f"{n_img + 1}:a"]
 
