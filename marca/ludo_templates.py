@@ -6,7 +6,8 @@ Formatos: feed/carrossel 1080x1350 (padrão) e story/reels 1080x1920.
 Carrossel: gere cada slide com page="01/05" e swipe=True na capa (editorial).
 Reels: reel([img1, img2, ...], "posts/AAAA-MM-DD-slug.mp4") monta um vídeo 9:16 com transições suaves.
 
-Layouts: editorial, pontos, numero, manifesto, grafico (dados oficiais em barras/linha),
+Layouts: editorial, pontos, numero (big_size para números longos), manifesto,
+grafico (dados oficiais em barras/linha; referencia=(valor, rótulo) traça linha de meta/teto),
 foto (foto real de pessoas/eventos da pasta fotos/, com véu marinho e título).
 Vídeo real: reel_de_video("fotos/<video>.mp4", "posts/AAAA-MM-DD-slug.mp4", title=[...]).
 
@@ -206,14 +207,17 @@ def pontos(label, title, items, foot=None, dark=False, title_size=64, page=None)
     _footer(img, d, dark, foot, page)
     return img.convert("RGB")
 
-def numero(label, big, caption, body=None, foot=None, page=None):
-    """Número/dado em destaque monumental (ex.: 'R$ 50 mil', '10%')."""
+def numero(label, big, caption, body=None, foot=None, page=None, big_size=250):
+    """Número/dado em destaque monumental (ex.: 'R$ 50 mil', '10%').
+    big_size: reduza (ex.: 200) quando o número for longo, como 'R$ 522,90' (limite: largura útil da arte)."""
     img = Image.new("RGBA", (W, H), NAVY + (255,)); d = ImageDraw.Draw(img)
     d.line([M, 150 + TOP, M + 56, 150 + TOP], fill=CARAMEL, width=2)
     spaced(d, M, 170 + TOP, label, font("sans-sb", 20), G2)
-    fbig = font("display", 250)
+    fbig = font("display", big_size)
+    while big_size > 120 and d.textlength(big, font=fbig) > W - 2 * M + 10:
+        big_size -= 6; fbig = font("display", big_size)   # nunca ultrapassa a margem
     d.text((M - 10, 300 + TOP), big, font=fbig, fill=OFF)
-    y = 700 + TOP
+    y = 300 + int(big_size * 1.6) + TOP
     for l in caption:
         rich_line(d, M, y, l, 50, OFF, _h("8fa5ff")); y += 64
     if body:
@@ -293,11 +297,38 @@ def foto(path, title, label=None, body=None, foot=None, page=None, focus=(0.5, 0
     return img.convert("RGB")
 
 
+def _linha_tracejada(od, xa, xb, y, cor, larg=3, traco=14, vao=10):
+    x = xa
+    while x < xb:
+        od.line([x, y, min(x + traco, xb), y], fill=cor, width=larg); x += traco + vao
+
+
+def _rotulo_referencia(d, od, ref_y, texto, x0, x1, ocupado, cor):
+    """Escreve o rótulo de uma linha de referência onde não encosta na série nem nos rótulos.
+    ocupado(xa, ya, xb, yb) -> True se a caixa colide com algo já desenhado."""
+    f = font("sans-sb", 18); lw = spaced_width(d, texto, f, 0.22)
+    for acima in (True, False):
+        ya, yb = (ref_y - 36, ref_y - 8) if acima else (ref_y + 10, ref_y + 38)
+        livres = [x for x in range(int(x0), int(x1 - lw) + 1, 8)
+                  if not ocupado(x - 8, ya - 6, x + lw + 8, yb + 6)]
+        if livres:                       # centraliza no maior trecho livre (mais respiro)
+            trechos, atual = [], [livres[0]]
+            for x in livres[1:]:
+                if x - atual[-1] == 8: atual.append(x)
+                else: trechos.append(atual); atual = [x]
+            trechos.append(atual)
+            melhor = max(trechos, key=len)
+            spaced(d, melhor[len(melhor) // 2], ya + 3, texto, f, cor, 0.22); return
+    spaced(d, x1 - lw, ref_y - 33, texto, f, cor, 0.22)   # último recurso: canto direito
+
+
 def grafico(label, title, dados, unidade="", fonte=None, foot=None, dark=False, page=None,
-            tipo="barras", destaque=None, title_size=60, casas=None):
+            tipo="barras", destaque=None, title_size=60, casas=None, referencia=None):
     """Gráfico editorial com dados oficiais (sempre cite a fonte).
-    dados: [(rótulo, valor), ...] com até 12 pontos. tipo='barras' (comparação) ou 'linha' (evolução).
-    destaque: índice ou lista de índices realçados em azul (padrão: o último)."""
+    dados: [(rótulo, valor), ...] com até 13 pontos. tipo='barras' (comparação) ou 'linha' (evolução).
+    destaque: índice ou lista de índices realçados em azul (padrão: o último).
+    referencia: (valor, 'rótulo') ou lista delas – linha tracejada caramelo, ex.: (4.5, 'Teto da meta 4,5%')."""
+    refs = referencia if isinstance(referencia, list) else ([referencia] if referencia else [])
     bg = NAVY if dark else PAPER
     img = Image.new("RGBA", (W, H), bg + (255,)); d = ImageDraw.Draw(img)
     ink, soft, acc = (OFF, G2, _h("8fa5ff")) if dark else (NAVY, GRAPH, BLUE)
@@ -321,7 +352,8 @@ def grafico(label, title, dados, unidade="", fonte=None, foot=None, dark=False, 
     neutro = (255, 255, 255, 70) if dark else G1 + (255,)
     realce = _h("8fa5ff") if dark else BLUE
     if tipo == "barras":
-        lo, hi = min(0.0, min(vals)), max(0.0, max(vals))
+        lo = min(0.0, min(vals + [r[0] for r in refs]))
+        hi = max(0.0, max(vals + [r[0] for r in refs]))
         span = (hi - lo) or 1.0
         passo = (x1 - x0) / n
         larg = passo * 0.62
@@ -337,8 +369,14 @@ def grafico(label, title, dados, unidade="", fonte=None, foot=None, dark=False, 
                    fill=(realce if i in destaque else ink))
             d.text((cx - d.textlength(rot, font=fr) / 2, y1 + 22), rot, font=fr, fill=soft)
         od.line([x0, zero, x1, zero], fill=regua, width=2)
+        fref = font("sans-sb", 18)
+        for rv, rt in refs:
+            ry = zero - rv / span * (y1 - y0) * 0.86
+            _linha_tracejada(od, x0, x1, ry, CARAMEL + (235,))
+            spaced(d, x1 - spaced_width(d, rt, fref, 0.22), ry - 30, rt, fref, CARAMEL, 0.22)
     else:
-        lo, hi = min(vals), max(vals)
+        ext = vals + [r[0] for r in refs]
+        lo, hi = min(ext), max(ext)
         pad = (hi - lo) * 0.18 or abs(hi) * 0.1 or 1.0
         lo, hi = lo - pad, hi + pad
         passo = (x1 - x0 - 60) / max(n - 1, 1)
@@ -346,7 +384,13 @@ def grafico(label, title, dados, unidade="", fonte=None, foot=None, dark=False, 
         for k in range(4):                    # grade discreta
             gy = y0 + (y1 - y0) * k / 3
             od.line([x0, gy, x1, gy], fill=regua[:3] + (30,), width=1)
+        ref_ys = []
+        for rv, rt in refs:                   # referência (ex.: teto da meta) por baixo da série
+            ry = y1 - (rv - lo) / (hi - lo) * (y1 - y0)
+            _linha_tracejada(od, x0, x1, ry, CARAMEL + (235,))
+            ref_ys.append((ry, rt))
         od.line(pts, fill=(ink + (255,)), width=5, joint="curve")
+        caixas = []
         cada = max(1, round(n / 6))
         for i, ((px, py), (rot, v)) in enumerate(zip(pts, dados)):
             r = 11 if i in destaque else 6
@@ -362,8 +406,28 @@ def grafico(label, title, dados, unidade="", fonte=None, foot=None, dark=False, 
                     tx = min(max(px - tw / 2, x0), x1 - tw)
                 ty = py + 20 if abaixo else py - 58
                 d.text((tx, ty), txt, font=fv, fill=(realce if i in destaque else ink))
+                caixas.append((tx, ty, tx + tw, ty + 38))
+            caixas.append((px - r, py - r, px + r, py + r))
             if i % cada == 0 or i == n - 1:
                 d.text((px - d.textlength(rot, font=fr) / 2, y1 + 22), rot, font=fr, fill=soft)
+
+        def ocupado(xa, ya, xb, yb):
+            if ya < y0 - 60 or yb > y1:
+                return True
+            for ax, ay, bx, by in caixas:
+                if xa < bx and xb > ax and ya < by and yb > ay:
+                    return True
+            for (pa, qa), (pb, qb) in zip(pts, pts[1:]):
+                if pb < xa - 6 or pa > xb + 6:
+                    continue
+                passos = int(pb - pa) + 1
+                for s in range(passos + 1):
+                    sx = pa + (pb - pa) * s / passos; sy = qa + (qb - qa) * s / passos
+                    if xa - 6 <= sx <= xb + 6 and ya - 8 <= sy <= yb + 8:
+                        return True
+            return False
+        for ry, rt in ref_ys:
+            _rotulo_referencia(d, od, ry, rt, x0 + 30, x1, ocupado, CARAMEL)
     img.alpha_composite(ov)
     d = ImageDraw.Draw(img)
     if fonte:
