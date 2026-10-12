@@ -3,6 +3,8 @@
 **LIAM – Ludo Inteligência Artificial de Marketing.** Agente autônomo, sem viés humano, que decide e publica
 o conteúdo com base em dados estatísticos dos próprios posts e dos concorrentes, em ciclo PDCA e com
 aprendizado contínuo (machine learning). Premissas completas: página "🤖 LIAM – Dados e Aprendizado" no Notion.
+Orientações permanentes do usuário: seção "Manual do LIAM" no card DN® / Agentes / LIAM do Notion
+(página 82858512ccb183d8b8fb819f4624bf6e). O manual vale acima deste arquivo, exceto compliance e identidade visual.
 Motor de aprendizado: `liam/` (Score LIAM, efeitos bayesianos, Thompson sampling, radar de concorrentes).
 
 Referências de padrão: W1 Consultoria e Portfel (wealth/consultoria premium).
@@ -74,10 +76,16 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
 | Sexta | Carrossel "Resumo da Semana" (5 slides) | Contexto & Mercado (4 fatos + fechamento) |
 | Sábado | Reels | Manifesto & Marca, Bastidores ou dica rápida |
 | Domingo | Feed (manifesto ou reflexão) | Manifesto & Marca |
-Stories: NÃO entram na fila (o Make não publica Stories; um item "Story" seria publicado no feed por engano).
+Stories: pelo menos 1 por dia, em janela diferente da do post principal, quando o Manual do LIAM disser
+"ativo" (até lá, não crie itens Story). Publicados pelo cenário "LIAM – Publicador Stories" (Graph API); o
+publicador do feed ignora itens "Story".
+
+## Vídeos: no máximo 2 por conteúdo
+Cada conteúdo (palestra, entrevista, evento ou vídeo original) gera e publica no máximo 2 vídeos (cortes ou
+Reels). Conte os já publicados do mesmo conteúdo; o Reels do dia repetido nos Stories não conta.
 
 ## Horários (janelas do publicador)
-O Make verifica a fila só dentro de 4 janelas (economia de operações no plano grátis):
+O Make verifica a fila só dentro de 4 janelas (feed e Stories, em cenários separados):
 **07h–09h, 12h–14h, 18h–20h, 21h–23h** (America/Sao_Paulo). Ele roda exatamente no início de cada janela
 (07:00, 12:00, 18:00, 21:00) e depois de hora em hora até o fim dela. Agende o post 5 minutos antes do
 início da janela (06:55, 11:55, 17:55 ou 20:55) para sair na hora cheia, e use a mesma faixa em
@@ -90,6 +98,9 @@ início da janela (06:55, 11:55, 17:55 ou 20:55) para sair na hora cheia, e use 
 - Reels de artes: set_formato("story"); 3 a 5 quadros 1080x1920 → `reel(frames, "posts/...mp4")`.
 - Reels com vídeo real: corte pronto do Banco de mídia, usado como está (Link → "Link do vídeo", Capa → "Link da
   imagem", Layout "video"); ou `reel_de_video("fotos/<video>", "posts/...mp4", title=[...], duracao=...)`.
+- Story: 1 JPEG 1080x1920 (set_formato("story"); layouts editorial, numero, foto, manifesto) → "Link da imagem",
+  ou vídeo 9:16 de 3 a 60 s → "Link do vídeo" (+ capa em "Link da imagem"). Formato "Story" na Fila. Sem link,
+  enquete ou figurinhas pela API: a arte se explica sozinha (ex.: dado-chave + "post completo no perfil").
 - Vídeos: até 18 MB por arquivo (o jsDelivr não serve arquivos acima de 20 MB).
 - Reels → "Link do vídeo" (URL jsDelivr com o hash do commit:
   https://cdn.jsdelivr.net/gh/ludogroup/ludo-instagram@<sha>/posts/<arquivo>.mp4); capa = primeiro quadro em JPEG
@@ -107,7 +118,7 @@ início da janela (06:55, 11:55, 17:55 ou 20:55) para sair na hora cheia, e use 
   com `liam/midia.py`:
   - fotos: JPEG sem EXIF/GPS em `fotos/`, com foco (rosto), qualidade e descrição; as melhores entram no Banco de
     mídia como "disponível", as fracas como "descartado";
-  - vídeos: transcrição (Whisper), 3 a 6 cortes de 20 a 60 s por hora de conteúdo, Reels 1080x1920 com recorte que
+  - vídeos: transcrição (Whisper), no máximo 2 cortes de 20 a 60 s por conteúdo, Reels 1080x1920 com recorte que
     acompanha o rosto, legendas na identidade Ludo, título e capa em `fotos/cortes/`; cópia dos cortes em
     `_LIAM/cortes` dentro da própria pasta do Drive (a equipe vê o resultado).
 - A rotina diária escolhe no Banco de mídia (Status "disponível") e marca o item como "usado" ao agendar o post.

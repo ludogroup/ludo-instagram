@@ -260,7 +260,7 @@ def montar_posts(fila, metricas, ref, excluir):
             excluir.add(pid)
             continue
         formato = r.get("formato")
-        if formato == "Story":           # Stories não passam pelo Make; se foi ao feed, foi engano
+        if formato == "Story":           # Stories têm métricas próprias (24 h): ficam fora do Score do feed
             excluir.add(pid)
             continue
         pilar = r.get("pilar")
