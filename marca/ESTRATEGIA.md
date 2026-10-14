@@ -20,7 +20,7 @@ Objetivo: autoridade e sofisticação com utilidade. A Ludo fala como um family 
   arte, slogan ou imagem.
 
 ## O que o LIAM decide (com dados, registrando no PDCA)
-Formatos, pilares, temas, ganchos, layouts, horários, frequência (1 a 2 posts/dia), mix 80/20, séries,
+Formatos, pilares, temas, ganchos, layouts, horários, mix 80/20, séries,
 testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o PDCA com a evidência
 (Score LIAM, P(melhor), n) e a hipótese seguinte.
 
@@ -76,9 +76,15 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
 | Sexta | Carrossel "Resumo da Semana" (5 slides) | Contexto & Mercado (4 fatos + fechamento) |
 | Sábado | Reels | Manifesto & Marca, Bastidores ou dica rápida |
 | Domingo | Feed (manifesto ou reflexão) | Manifesto & Marca |
-Stories: pelo menos 1 por dia, em janela diferente da do post principal, quando o Manual do LIAM disser
-"ativo" (até lá, não crie itens Story). Publicados pelo cenário "LIAM – Publicador Stories" (Graph API); o
-publicador do feed ignora itens "Story".
+## Frequência (regra do usuário, 14/10/2026)
+- Feed: 2 publicações por dia, em janelas diferentes. Uma de vídeo real da equipe (corte do Banco de mídia,
+  dentro do limite de 2 por conteúdo) sempre que houver material; a outra variando entre Feed, Carrossel e
+  Reels de artes, sem repetir o formato do dia anterior. Sem vídeo disponível, as duas são do segundo tipo,
+  em formatos diferentes. A grade acima indica o formato da vaga variada.
+- Stories: 2 por dia, de preferência um para cada post do feed (podem repetir o conteúdo), publicados depois
+  do post e em horário diferente dele. Entram na fila todos os dias, mesmo antes do token da Meta: saem
+  assim que o token estiver no Make. Publicados pelo cenário "LIAM – Publicador Stories" (Graph API); o
+  publicador do feed ignora itens "Story".
 
 ## Vídeos: no máximo 2 por conteúdo
 Cada conteúdo (palestra, entrevista, evento ou vídeo original) gera e publica no máximo 2 vídeos (cortes ou
