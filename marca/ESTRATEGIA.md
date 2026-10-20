@@ -44,7 +44,9 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
 
 ## Estética (obrigatório)
 - Usar SEMPRE `marca/ludo_templates.py` (layouts: editorial, pontos, numero, manifesto, grafico, foto; vídeos:
-  reel e reel_de_video). Não criar layouts do zero.
+  reel e reel_de_video). Não criar layouts do zero fora dele. Para reproduzir um padrão visual que funciona
+  nos concorrentes (ex.: foto em tela cheia com manchete), o LIAM pode acrescentar um layout novo ao
+  `ludo_templates.py`, com a paleta e as fontes da marca, e registrá-lo no PDCA como teste.
 - Muito respiro. No máximo 1 ideia por arte. Títulos curtos (até ~9 palavras), 1 palavra-chave em *itálico*.
 - Nada de emojis nas artes, ícones genéricos, cores fora da paleta, sombras, molduras ou "cara de template".
 - Alternar fundos: papel (#f6f4ee) e marinho (#00214d); degradê azul só em manifestos.
@@ -78,7 +80,7 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
 | Domingo | Feed (manifesto ou reflexão) | Manifesto & Marca |
 ## Frequência (regra do usuário, 14/10/2026)
 - Feed: 2 publicações por dia, em janelas diferentes. Uma de vídeo real da equipe (corte do Banco de mídia,
-  dentro do limite de 2 por conteúdo) sempre que houver material; a outra variando entre Feed, Carrossel e
+  dentro do limite por pasta) sempre que houver material; a outra variando entre Feed, Carrossel e
   Reels de artes, sem repetir o formato do dia anterior. Sem vídeo disponível, as duas são do segundo tipo,
   em formatos diferentes. A grade acima indica o formato da vaga variada.
 - Stories: 2 por dia, de preferência um para cada post do feed (podem repetir o conteúdo), publicados depois
@@ -86,9 +88,20 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
   assim que o token estiver no Make. Publicados pelo cenário "LIAM – Publicador Stories" (Graph API); o
   publicador do feed ignora itens "Story".
 
-## Vídeos: no máximo 2 por conteúdo
-Cada conteúdo (palestra, entrevista, evento ou vídeo original) gera e publica no máximo 2 vídeos (cortes ou
-Reels). Conte os já publicados do mesmo conteúdo; o Reels do dia repetido nos Stories não conta.
+## Limite por pasta: até 4–5 fotos e 2–3 vídeos (regra do usuário, 19/10/2026)
+Cada pasta da equipe (um evento, palestra, entrevista ou vídeo original = uma subpasta do Drive) rende no
+máximo 5 fotos (ideal 4) e 3 cortes de vídeo (ideal 2) no total, somando todos os posts e Stories. Cada foto
+de um carrossel conta. Repetir nos Stories o post do próprio dia não conta. Atingido o teto, a pasta está
+encerrada: o restante dela vai para "descartado" no Banco de mídia. Exemplo: a pasta da Dengo (O Médico CEO,
+26/09) já usou 7 fotos e 2 cortes e foi encerrada em 19/10/2026.
+
+## Imagens no estilo dos concorrentes (regra do usuário, 19/10/2026)
+Com pouca foto real disponível, crie imagens e fotos como as dos posts de maior engajamento dos concorrentes e
+influenciadores monitorados (📊 Concorrentes – Posts): foto editorial com manchete sobreposta, cenas de
+consultório, escritório, família e patrimônio, capas fotográficas de carrossel etc. Adaptar o estilo, nunca
+copiar a imagem, o texto ou a composição. As fotos geradas por IA (Canva) ficam no Banco de mídia como
+"Imagem gerada (IA)": sem texto, sem logotipos, sem pessoas identificáveis e nunca apresentadas como foto real
+de evento, cliente ou da equipe. A análise visual das referências fica na página "🎨 Referências visuais".
 
 ## Horários (janelas do publicador)
 O Make verifica a fila só dentro de 4 janelas (feed e Stories, em cenários separados):
@@ -122,9 +135,9 @@ início da janela (06:55, 11:55, 17:55 ou 20:55) para sair na hora cheia, e use 
   escritos ali ou em 💡 Sugestões Instagram.
 - A rotina "LIAM – Mídias da equipe" (11:47 e 17:47, com o Mac ligado e o app Claude aberto) trata o que for novo
   com `liam/midia.py`:
-  - fotos: JPEG sem EXIF/GPS em `fotos/`, com foco (rosto), qualidade e descrição; as melhores entram no Banco de
-    mídia como "disponível", as fracas como "descartado";
-  - vídeos: transcrição (Whisper), no máximo 2 cortes de 20 a 60 s por conteúdo, Reels 1080x1920 com recorte que
+  - fotos: JPEG sem EXIF/GPS em `fotos/`, com foco (rosto), qualidade e descrição; as 5 melhores da pasta entram
+    no Banco de mídia como "disponível", as demais como "descartado";
+  - vídeos: transcrição (Whisper), no máximo 3 cortes de 20 a 60 s por pasta (ideal 2), Reels 1080x1920 com recorte que
     acompanha o rosto, legendas na identidade Ludo, título e capa em `fotos/cortes/`; cópia dos cortes em
     `_LIAM/cortes` dentro da própria pasta do Drive (a equipe vê o resultado).
 - A rotina diária escolhe no Banco de mídia (Status "disponível") e marca o item como "usado" ao agendar o post.
