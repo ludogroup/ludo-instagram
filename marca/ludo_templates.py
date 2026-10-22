@@ -7,6 +7,7 @@ Carrossel: gere cada slide com page="01/05" e swipe=True na capa (editorial).
 Reels: reel([img1, img2, ...], "posts/AAAA-MM-DD-slug.mp4") monta um vídeo 9:16 com transições suaves.
 
 Layouts: editorial, pontos, numero (big_size para números longos), manifesto,
+fluxo (diagrama estilo Sankey: origem → destinos, valores proporcionais),
 grafico (dados oficiais em barras/linha; referencia=(valor, rótulo) traça linha de meta/teto),
 foto (foto real de pessoas/eventos da pasta fotos/, com véu marinho e título).
 Vídeo real: reel_de_video("fotos/<video>.mp4", "posts/AAAA-MM-DD-slug.mp4", title=[...]).
@@ -22,6 +23,7 @@ Convenção de títulos: lista de linhas; trechos entre *asteriscos* saem em it�
 na cor de destaque. Rode sempre a partir da raiz do repositório.
 """
 from PIL import Image, ImageDraw, ImageFont
+import math
 import os
 
 W, H = 1080, 1350
@@ -432,6 +434,82 @@ def grafico(label, title, dados, unidade="", fonte=None, foot=None, dark=False, 
     d = ImageDraw.Draw(img)
     if fonte:
         d.text((M, y1 + 76), f"Fonte: {fonte}", font=font("sans", 20), fill=soft)
+    _footer(img, d, dark, foot, page)
+    return img.convert("RGB")
+
+
+def fluxo(label, title, origem, itens, fonte=None, foot=None, dark=False, page=None, title_size=58,
+          destaque=None, nota=None):
+    """Diagrama de fluxo (estilo Sankey) de uma origem para várias destinações, com faixas proporcionais.
+    Para temas de dinheiro que entra e sai (orçamento público, renda do médico, custos da clínica).
+    origem: texto do selo acima do fluxo, ex.: 'Gasto federal 2025 · R$ 2,39 tri'.
+    itens: [(valor_numérico, 'R$ 43', 'Aposentadorias e pensões do INSS'), ...] (até 7, do maior ao menor).
+    destaque: índices realçados em azul (padrão: o primeiro). nota: linha curta abaixo do fluxo.
+    Sempre com dados oficiais e a fonte."""
+    bg = NAVY if dark else PAPER
+    img = Image.new("RGBA", (W, H), bg + (255,)); d = ImageDraw.Draw(img)
+    ink, soft, acc = (OFF, G2, _h("8fa5ff")) if dark else (NAVY, GRAPH, BLUE)
+    d.line([M, 150 + TOP, M + 56, 150 + TOP], fill=CARAMEL, width=2)
+    spaced(d, M, 170 + TOP, label, font("sans-sb", 20), soft)
+    y = 250 + TOP
+    for line in title:
+        rich_line(d, M - 3, y, line, title_size, ink, acc); y += int(title_size * 1.2)
+    fo = font("sans-sb", 18)
+    spaced(d, M, y + 34, origem, fo, CARAMEL, 0.22)
+    y0, y1 = y + 92, H - BOT - 300 - (34 if nota else 0)
+    destaque = {0} if destaque is None else ({destaque} if isinstance(destaque, int) else set(destaque))
+    total = float(sum(v for v, _, _ in itens)) or 1.0
+    fv, fr = font("serif", 40), font("sans-m", 21)
+    xl, bw, xr = M, 18, 500
+    xt = xr + bw + 26
+    maxw = W - M - xt
+    alturas_txt = [46 + 27 * len(wrap(d, r, fr, maxw)) for _, _, r in itens]
+    gap = 14
+    disp = y1 - y0
+    hs = disp
+    while hs > 60:                     # maior fluxo que deixa espaço para todos os rótulos
+        slots = [max(v / total * hs, a) for (v, _, _), a in zip(itens, alturas_txt)]
+        if sum(slots) + gap * (len(itens) - 1) <= disp:
+            break
+        hs -= 4
+    hb = [v / total * hs for v, _, _ in itens]
+    ov = Image.new("RGBA", img.size, (0, 0, 0, 0)); od = ImageDraw.Draw(ov)
+    realce = _h("8fa5ff") if dark else BLUE
+    neutro = (255, 255, 255) if dark else NAVY
+    ly = y0 + (disp - hs) / 2          # barra de origem centralizada
+    ry = y0
+    for i, ((v, vt, rot), h, slot) in enumerate(zip(itens, hb, slots)):
+        cy = ry + slot / 2
+        r_top, r_bot = cy - h / 2, cy + h / 2
+        l_top, l_bot = ly, ly + h
+        cor = realce if i in destaque else neutro
+        alfa = 205 if i in destaque else (70 if dark else 46)
+        pts_top, pts_bot = [], []
+        xa, xb = xl + bw, xr
+        for s in range(41):
+            t = s / 40
+            k = (1 - math.cos(t * math.pi)) / 2
+            x = xa + (xb - xa) * t
+            pts_top.append((x, l_top + (r_top - l_top) * k))
+            pts_bot.append((x, l_bot + (r_bot - l_bot) * k))
+        od.polygon(pts_top + pts_bot[::-1], fill=cor + (alfa,))
+        od.rectangle([xr, r_top, xr + bw, r_bot], fill=cor + (255,))
+        od.rectangle([xl, l_top, xl + bw, l_bot], fill=(ink if not dark else OFF) + (255,))
+        # rótulos
+        yy = cy - alturas_txt[i] / 2
+        d.text((xt, yy), vt, font=fv, fill=realce if i in destaque else ink)
+        yy += 50
+        for l in wrap(d, rot, fr, maxw):
+            d.text((xt, yy), l, font=fr, fill=soft); yy += 27
+        ly += h
+        ry += slot + gap
+    img.alpha_composite(ov)
+    d = ImageDraw.Draw(img)
+    yb = y1 + 30
+    if nota:
+        d.text((M, yb), nota, font=font("sans-m", 21), fill=ink); yb += 34
+    if fonte:
+        d.text((M, yb), f"Fonte: {fonte}", font=font("sans", 20), fill=soft)
     _footer(img, d, dark, foot, page)
     return img.convert("RGB")
 
