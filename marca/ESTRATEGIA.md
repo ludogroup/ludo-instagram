@@ -10,6 +10,16 @@ Motor de aprendizado: `liam/` (Score LIAM, efeitos bayesianos, Thompson sampling
 Referências de padrão: W1 Consultoria e Portfel (wealth/consultoria premium).
 Objetivo: autoridade e sofisticação com utilidade. A Ludo fala como um family office, não como uma fintech de varejo.
 
+## Público (regra do usuário, 22/10/2026)
+A Ludo não atende só médicos. O conteúdo fala com todos os clientes do grupo: pessoas e famílias que querem
+organizar, proteger e fazer crescer o patrimônio (renda familiar acima de R$ 10 mil, a partir dos 30 anos),
+profissionais liberais, empresários e empresas (BPO, CFO, contabilidade, crédito, meios de pagamento).
+Médicos e profissionais da saúde são um dos segmentos (vertical Ludo Health), não o público único:
+- a maioria dos posts fala com o público geral, sem citar profissão;
+- post específico para a saúde só quando o tema for próprio do setor (ex.: equiparação hospitalar, PJ médica,
+  eventos para médicos), como parte menor do mix (referência: até 1 em cada 4 posts); o LIAM ajusta com dados;
+- varie os perfis nos exemplos e casos: família, profissional liberal, empresário, investidor, médico.
+
 ## O que é fixo (LIAM não muda)
 - Compliance: sem promessa ou projeção de rentabilidade, sem recomendação de investimento específica,
   sem superlativos não comprováveis; regras de CFM, CVM, Anbima e Susep; avisos e temas proibidos da Base.
@@ -27,13 +37,14 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
 ## Conteúdo: útil, rico em dados e em evidência
 - **Notícia em evidência × Ludo**: partir do que está em alta (mais lidas de Valor, InfoMoney, Bloomberg Línea,
   Folha/Estadão Economia, Google Notícias; posts de concorrentes fora da curva) e cruzar com um produto do
-  grupo. Pergunta-guia: "o que isso muda na vida financeira do médico hoje?".
+  grupo. Pergunta-guia: "o que isso muda hoje na vida financeira de uma pessoa, família ou empresa?".
 - **Entretenimento útil** (o técnico vira prático e leve, sem perder a sobriedade):
-  - Analogia médica: "check-up financeiro", "prontuário do patrimônio", "triagem da carteira", "pós-operatório do IR".
+  - Analogias do dia a dia: "check-up financeiro", "faxina nas contas", "manutenção preventiva do patrimônio".
+    Analogias médicas ("prontuário do patrimônio", "pós-operatório do IR") só em posts para o público da saúde.
   - Mito x Verdade: 1 crença comum, 1 correção com fonte.
   - Números que contam histórias: 1 dado oficial monumental (`numero`) ou série (`grafico`).
-  - Séries recorrentes: "Plantão de mercado" (contexto), "Prontuário financeiro" (casos hipotéticos de médicos),
-    "Resumo da Semana" (sexta).
+  - Séries recorrentes: "Plantão de mercado" (contexto), "Raio-X financeiro" (casos hipotéticos de perfis
+    variados: família, profissional liberal, empresário, médico), "Resumo da Semana" (sexta).
   - Bastidores e eventos com pessoas reais (sócios, time, clientes que autorizaram).
 - **Humanizar**: fotos e vídeos reais da equipe, catalogados no 🎞️ Banco de mídia (Notion) pela rotina
   "LIAM – Mídias da equipe": fotos tratadas em `fotos/` (layout `foto`) e cortes de vídeo prontos em
@@ -61,10 +72,11 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
   ("Converse com um especialista Ludo pelo direct."), 3 a 5 hashtags sóbrias.
 
 ## Pilares
-1. Contexto & Mercado – notícia em evidência → impacto para o médico → solução do grupo.
+1. Contexto & Mercado – notícia em evidência → impacto para pessoas, famílias ou empresas → solução do grupo.
 2. Estrutura & Patrimônio – holding, sucessão, planejamento tributário, organização societária (Law, A&T, Capital).
-3. Proteção – seguros, previdência, reserva, riscos da carreira médica (Care, People).
-4. Gestão do consultório/clínica – fluxo de caixa, BPO, CFO, meios de pagamento, crédito (Company, Pay, CredEx).
+3. Proteção – seguros, previdência, reserva, riscos da carreira e da família (Care, People).
+4. Gestão da empresa – empresa, escritório, consultório ou clínica: fluxo de caixa, BPO, CFO, meios de pagamento,
+   crédito (Company, Pay, CredEx). Até 22/10/2026 chamava-se "Gestão do consultório"; o motor conta os dois como um.
 5. Manifesto & Marca – posicionamento, valores, ecossistema.
 6. Bastidores & Eventos – pessoas reais, eventos, palestras, feiras, time (fotos e cortes do Banco de mídia).
 
@@ -73,8 +85,8 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
 |---|---|---|
 | Segunda | Carrossel (5 slides) | Contexto & Mercado (notícia da semana → impacto → solução) |
 | Terça | Feed (1 arte) | Estrutura & Patrimônio |
-| Quarta | Reels | Proteção ou Gestão do consultório |
-| Quinta | Carrossel (5 slides) | Gestão do consultório / educativo |
+| Quarta | Reels | Proteção ou Gestão da empresa |
+| Quinta | Carrossel (5 slides) | Gestão da empresa / educativo |
 | Sexta | Carrossel "Resumo da Semana" (5 slides) | Contexto & Mercado (4 fatos + fechamento) |
 | Sábado | Reels | Manifesto & Marca, Bastidores ou dica rápida |
 | Domingo | Feed (manifesto ou reflexão) | Manifesto & Marca |
@@ -98,7 +110,8 @@ encerrada: o restante dela vai para "descartado" no Banco de mídia. Exemplo: a 
 ## Imagens no estilo dos concorrentes (regra do usuário, 19/10/2026)
 Com pouca foto real disponível, crie imagens e fotos como as dos posts de maior engajamento dos concorrentes e
 influenciadores monitorados (📊 Concorrentes – Posts): foto editorial com manchete sobreposta, cenas de
-consultório, escritório, família e patrimônio, capas fotográficas de carrossel etc. Adaptar o estilo, nunca
+escritório, empresa, casa e família, patrimônio e, quando o post for para a saúde, consultório; capas
+fotográficas de carrossel etc. Adaptar o estilo, nunca
 copiar a imagem, o texto ou a composição. As fotos geradas por IA (Canva) ficam no Banco de mídia como
 "Imagem gerada (IA)": sem texto, sem logotipos, sem pessoas identificáveis e nunca apresentadas como foto real
 de evento, cliente ou da equipe. A análise visual das referências fica na página "🎨 Referências visuais".

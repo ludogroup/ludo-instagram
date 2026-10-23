@@ -441,7 +441,7 @@ def grafico(label, title, dados, unidade="", fonte=None, foot=None, dark=False, 
 def fluxo(label, title, origem, itens, fonte=None, foot=None, dark=False, page=None, title_size=58,
           destaque=None, nota=None):
     """Diagrama de fluxo (estilo Sankey) de uma origem para várias destinações, com faixas proporcionais.
-    Para temas de dinheiro que entra e sai (orçamento público, renda do médico, custos da clínica).
+    Para temas de dinheiro que entra e sai (orçamento público, renda da família, custos da empresa).
     origem: texto do selo acima do fluxo, ex.: 'Gasto federal 2025 · R$ 2,39 tri'.
     itens: [(valor_numérico, 'R$ 43', 'Aposentadorias e pensões do INSS'), ...] (até 7, do maior ao menor).
     destaque: índices realçados em azul (padrão: o primeiro). nota: linha curta abaixo do fluxo.

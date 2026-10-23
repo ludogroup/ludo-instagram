@@ -60,17 +60,17 @@ PROGRAMACAO = {  # dia da semana (0 = segunda) -> (formato, pilar) da grade de m
     0: ("Carrossel", "Contexto & Mercado"),
     1: ("Feed", "Estrutura & Patrimônio"),
     2: ("Reels", "Proteção"),
-    3: ("Carrossel", "Gestão do consultório"),
+    3: ("Carrossel", "Gestão da empresa"),
     4: ("Carrossel", "Resumo da Semana"),
     5: ("Reels", "Manifesto & Marca"),
     6: ("Feed", "Manifesto & Marca"),
 }
 UNIVERSO = {
     "formato": ["Feed", "Carrossel", "Reels"],
-    "pilar": ["Contexto & Mercado", "Estrutura & Patrimônio", "Proteção", "Gestão do consultório",
+    "pilar": ["Contexto & Mercado", "Estrutura & Patrimônio", "Proteção", "Gestão da empresa",
               "Manifesto & Marca", "Bastidores & Eventos", "Resumo da Semana"],
     "gancho": ["Pergunta", "Dado", "Afirmação forte", "Lista", "Notícia", "Mito x Verdade",
-               "Analogia médica", "Bastidores"],
+               "Analogia", "Bastidores"],
     "layout": ["editorial", "pontos", "numero", "manifesto", "grafico", "foto", "video"],
     "tema": ["People", "Capital", "Care", "Company", "A&T", "CredEx", "Pay", "Law", "Institucional"],
     "origem": ["Notícia em alta", "Concorrente", "Sugestão", "Base de Conhecimento", "Aprendizado LIAM"],
@@ -82,6 +82,9 @@ UNIVERSO = {
 VARIAVEIS = list(UNIVERSO)
 CONTROLES = {"fonte"}
 DIAS = UNIVERSO["dia"]
+# Rótulos renomeados em 22/10/2026 (o público deixou de ser só médicos): o histórico da Fila com o nome
+# antigo conta como o novo, para o aprendizado não recomeçar do zero.
+RENOMEADOS = {"Gestão do consultório": "Gestão da empresa", "Analogia médica": "Analogia"}
 DECISOES = ["gancho", "layout", "faixa", "tema", "humano", "origem"]   # escolhidas por Thompson
 LAYOUTS_POR_FORMATO = {
     "Feed": ["editorial", "pontos", "numero", "manifesto", "grafico", "foto"],
@@ -263,14 +266,14 @@ def montar_posts(fila, metricas, ref, excluir):
         if formato == "Story":           # Stories têm métricas próprias (24 h): ficam fora do Score do feed
             excluir.add(pid)
             continue
-        pilar = r.get("pilar")
+        pilar = RENOMEADOS.get(r.get("pilar"), r.get("pilar"))
         if formato == "Resumo da Semana":
             formato, pilar = "Carrossel", pilar or "Resumo da Semana"
         posts[pid] = {
             "post_id": pid, "fonte": "LIAM", "titulo": r.get("titulo"),
             "data": data_hora(r.get("data")), "formato": formato, "pilar": pilar,
-            "gancho": r.get("gancho"), "layout": lista(r.get("layout")), "tema": r.get("tema"),
-            "origem": r.get("origem"), "faixa_plano": r.get("faixa"),
+            "gancho": RENOMEADOS.get(r.get("gancho"), r.get("gancho")), "layout": lista(r.get("layout")),
+            "tema": r.get("tema"), "origem": r.get("origem"), "faixa_plano": r.get("faixa"),
             "met": {k: numero(r.get(k)) for k in CAMPOS},
             "met_col": data_hora(r.get("metricas_em")), "legenda": "",
         }
