@@ -54,8 +54,8 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
 - Rico em dados: cada post traz ao menos 1 número, regra ou data verificável, com "Fonte: ..." na legenda.
 
 ## Estética (obrigatório)
-- Usar SEMPRE `marca/ludo_templates.py` (layouts: editorial, pontos, numero, manifesto, grafico, foto; vídeos:
-  reel e reel_de_video). Não criar layouts do zero fora dele. Para reproduzir um padrão visual que funciona
+- Usar SEMPRE `marca/ludo_templates.py` (layouts: editorial, pontos, numero, manifesto, grafico, foto; vídeo:
+  reel_de_video, só com gravação real; `reel` de artes está desativado desde 26/10/2026). Não criar layouts do zero fora dele. Para reproduzir um padrão visual que funciona
   nos concorrentes (ex.: foto em tela cheia com manchete), o LIAM pode acrescentar um layout novo ao
   `ludo_templates.py`, com a paleta e as fontes da marca, e registrá-lo no PDCA como teste.
 - Muito respiro. No máximo 1 ideia por arte. Títulos curtos (até ~9 palavras), 1 palavra-chave em *itálico*.
@@ -85,16 +85,24 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
 |---|---|---|
 | Segunda | Carrossel (5 slides) | Contexto & Mercado (notícia da semana → impacto → solução) |
 | Terça | Feed (1 arte) | Estrutura & Patrimônio |
-| Quarta | Reels | Proteção ou Gestão da empresa |
-| Quinta | Carrossel (5 slides) | Gestão da empresa / educativo |
+| Quarta | Carrossel (5 slides) | Proteção ou Gestão da empresa |
+| Quinta | Feed (1 arte) | Gestão da empresa / educativo |
 | Sexta | Carrossel "Resumo da Semana" (5 slides) | Contexto & Mercado (4 fatos + fechamento) |
-| Sábado | Reels | Manifesto & Marca, Bastidores ou dica rápida |
+| Sábado | Feed (1 arte) | Manifesto & Marca, Bastidores ou dica rápida |
 | Domingo | Feed (manifesto ou reflexão) | Manifesto & Marca |
 ## Frequência (regra do usuário, 14/10/2026)
 - Feed: 2 publicações por dia, em janelas diferentes. Uma de vídeo real da equipe (corte do Banco de mídia,
-  dentro do limite por pasta) sempre que houver material; a outra variando entre Feed, Carrossel e
-  Reels de artes, sem repetir o formato do dia anterior. Sem vídeo disponível, as duas são do segundo tipo,
-  em formatos diferentes. A grade acima indica o formato da vaga variada.
+  dentro do limite por pasta) só quando houver gravação real disponível; a outra alternando entre Feed e
+  Carrossel. Sem vídeo real disponível, as duas são Feed e Carrossel (uma de cada).
+  A grade acima indica o formato da vaga variada (a grade de 26/10/2026 trocou os Reels por Feed/Carrossel).
+
+## Vídeos: só com gravação real (regra do usuário, 26/10/2026)
+- Reels e Stories em vídeo só com gravação real da pasta do Drive "Fotos e Vídeos Luis - LIAM" (cortes do
+  🎞️ Banco de mídia ou `reel_de_video` com vídeo real). Sem gravação disponível, não há vídeo naquele dia.
+- Proibido por ora: vídeo montado com artes, gráficos, números ou imagens estatísticas em sequência (o antigo
+  "Reels de artes", função `reel`) ou com imagens geradas por IA. Esse conteúdo vira Carrossel ou Feed.
+- Próxima etapa (ainda não liberada): vídeos do Luis criados com IAs de vídeo. Só quando o usuário liberar no
+  Manual do LIAM.
 - Stories: 2 por dia, de preferência um para cada post do feed (podem repetir o conteúdo), publicados depois
   do post e em horário diferente dele. Entram na fila todos os dias, mesmo antes do token da Meta: saem
   assim que o token estiver no Make. Publicados pelo cenário "LIAM – Publicador Stories" (Graph API); o
@@ -127,11 +135,11 @@ início da janela (06:55, 11:55, 17:55 ou 20:55) para sair na hora cheia, e use 
 - Feed: 1 JPEG 1080x1350 → "Link da imagem".
 - Carrossel: SEMPRE 5 JPEGs 1080x1350 (capa `editorial` ou `foto` com swipe=True e page="01/05"; slides 02-04 com
   conteúdo; 05 fechamento `manifesto` ou CTA) → "Link da imagem" (slide 1) + "Slide 2" a "Slide 5".
-- Reels de artes: set_formato("story"); 3 a 5 quadros 1080x1920 → `reel(frames, "posts/...mp4")`.
+- Reels de artes (`reel`): desativado desde 26/10/2026 (regra do usuário: vídeo só com gravação real).
 - Reels com vídeo real: corte pronto do Banco de mídia, usado como está (Link → "Link do vídeo", Capa → "Link da
   imagem", Layout "video"); ou `reel_de_video("fotos/<video>", "posts/...mp4", title=[...], duracao=...)`.
 - Story: 1 JPEG 1080x1920 (set_formato("story"); layouts editorial, numero, foto, manifesto) → "Link da imagem",
-  ou vídeo 9:16 de 3 a 60 s → "Link do vídeo" (+ capa em "Link da imagem"). Formato "Story" na Fila. Sem link,
+  ou vídeo 9:16 de 3 a 60 s, só com gravação real → "Link do vídeo" (+ capa em "Link da imagem"). Formato "Story" na Fila. Sem link,
   enquete ou figurinhas pela API: a arte se explica sozinha (ex.: dado-chave + "post completo no perfil").
 - Vídeos: até 18 MB por arquivo (o jsDelivr não serve arquivos acima de 20 MB).
 - Reels → "Link do vídeo" (URL jsDelivr com o hash do commit:

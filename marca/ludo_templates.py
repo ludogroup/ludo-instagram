@@ -4,7 +4,8 @@ Formatos: feed/carrossel 1080x1350 (padrão) e story/reels 1080x1920.
     set_formato("story")  # antes de gerar artes 9:16 (Stories e Reels)
     set_formato("feed")   # volta ao 4:5
 Carrossel: gere cada slide com page="01/05" e swipe=True na capa (editorial).
-Reels: reel([img1, img2, ...], "posts/AAAA-MM-DD-slug.mp4") monta um vídeo 9:16 com transições suaves.
+Reels de artes: reel([img1, img2, ...], ...) está DESATIVADO desde 26/10/2026 (regra do usuário: vídeo só com
+gravação real da pasta do Drive). Conteúdo de artes vira Carrossel ou Feed.
 
 Layouts: editorial, pontos, numero (big_size para números longos), manifesto,
 fluxo (diagrama estilo Sankey: origem → destinos, valores proporcionais),
@@ -553,7 +554,12 @@ def reel_de_video(entrada, saida, title=None, label=None, foot=None, inicio=0.0,
 
 def reel(frames, out, secs=3.6, fade=0.7):
     """Monta um Reel/Story em vídeo (1080x1920, H.264 + AAC silencioso, 30 fps) a partir de
-    uma lista de imagens PIL 1080x1920, com leve zoom e transições suaves. Duração: ~secs por quadro."""
+    uma lista de imagens PIL 1080x1920, com leve zoom e transições suaves. Duração: ~secs por quadro.
+    DESATIVADO desde 26/10/2026: vídeo só com gravação real (use os cortes do Banco de mídia ou reel_de_video).
+    Para reativar, o usuário precisa liberar no Manual do LIAM; então defina LIAM_PERMITIR_REEL_DE_ARTES=1."""
+    if os.environ.get("LIAM_PERMITIR_REEL_DE_ARTES") != "1":
+        raise RuntimeError("reel() de artes desativado (regra do usuário, 26/10/2026): vídeo só com gravação "
+                           "real. Faça Carrossel ou Feed.")
     import subprocess, tempfile
     tmp = tempfile.mkdtemp()
     paths = []

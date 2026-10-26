@@ -59,10 +59,10 @@ PROPRIOS = {"ludogroup.oficial", "luisdornela.oficial"}
 PROGRAMACAO = {  # dia da semana (0 = segunda) -> (formato, pilar) da grade de marca/ESTRATEGIA.md
     0: ("Carrossel", "Contexto & Mercado"),
     1: ("Feed", "Estrutura & Patrimônio"),
-    2: ("Reels", "Proteção"),
-    3: ("Carrossel", "Gestão da empresa"),
+    2: ("Carrossel", "Proteção"),
+    3: ("Feed", "Gestão da empresa"),
     4: ("Carrossel", "Resumo da Semana"),
-    5: ("Reels", "Manifesto & Marca"),
+    5: ("Feed", "Manifesto & Marca"),
     6: ("Feed", "Manifesto & Marca"),
 }
 UNIVERSO = {
@@ -89,8 +89,12 @@ DECISOES = ["gancho", "layout", "faixa", "tema", "humano", "origem"]   # escolhi
 LAYOUTS_POR_FORMATO = {
     "Feed": ["editorial", "pontos", "numero", "manifesto", "grafico", "foto"],
     "Carrossel": ["pontos", "numero", "grafico", "editorial", "foto"],   # miolo; capa editorial e fecho manifesto
-    "Reels": ["video", "foto"],
+    "Reels": ["video"],   # 26/10/2026: Reels só com gravação real (sem vídeo montado com artes ou fotos)
 }
+# Regra do usuário (26/10/2026): vídeo só com gravação real da pasta do Drive. O plano do dia é para a vaga
+# variada, que passa a ser só Feed ou Carrossel; a vaga de vídeo usa um corte real do Banco de mídia.
+# "Reels" continua em UNIVERSO["formato"] para o aprendizado com o histórico.
+FORMATOS_VAGA_VARIADA = ["Feed", "Carrossel"]
 INSIGHT_PARA_CAMPO = {"reach": "alcance", "likes": "curtidas", "comments": "comentarios",
                       "saved": "salvos", "shares": "compart", "follows": "seguidores",
                       "profile_visits": "visitas", "views": "views",
@@ -497,8 +501,8 @@ def planejar(modelo, amostras, dia_alvo, rng, base):
             plano["escolhas"][var] = {"valor": rng.choice(UNIVERSO[var]), "motivo": "sorteio (sem dados)"}
         return plano
 
-    def contra_programacao(var, prior):
-        pm = modelo.prob_melhor(amostras, var, UNIVERSO[var])
+    def contra_programacao(var, prior, opcoes=None):
+        pm = modelo.prob_melhor(amostras, var, opcoes or UNIVERSO[var])
         melhor = max(pm, key=pm.get)
         info = modelo.efeito(var, melhor)
         if melhor != prior and evidencia(pm[melhor], info["n"]) == "forte":
@@ -506,7 +510,7 @@ def planejar(modelo, amostras, dia_alvo, rng, base):
                             f"efeito {vezes(info['efeito'])}, n={br(info['n'])}")
         return prior, f"programação mantida (melhor estimado: {melhor}, P {pct(pm[melhor])}, n={br(info['n'])})"
 
-    formato, motivo = contra_programacao("formato", fmt_prog)
+    formato, motivo = contra_programacao("formato", fmt_prog, FORMATOS_VAGA_VARIADA)
     plano["escolhas"]["formato"] = {"valor": formato, "motivo": motivo}
     if pilar_prog == "Resumo da Semana":
         plano["escolhas"]["pilar"] = {"valor": pilar_prog, "motivo": "sexta = Resumo da Semana"}
