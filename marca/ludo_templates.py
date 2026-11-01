@@ -10,7 +10,9 @@ gravação real da pasta do Drive). Conteúdo de artes vira Carrossel ou Feed.
 Layouts: editorial, pontos, numero (big_size para números longos), manifesto,
 fluxo (diagrama estilo Sankey: origem → destinos, valores proporcionais),
 grafico (dados oficiais em barras/linha; referencia=(valor, rótulo) traça linha de meta/teto),
-foto (foto real de pessoas/eventos da pasta fotos/, com véu marinho e título).
+foto (foto real de pessoas/eventos da pasta fotos/, com véu marinho e título),
+frase (foto do Luis + frase com destaque: fala real dele entre aspas ou informação relevante;
+       modo="base" = foto em tela cheia e frase em faixas cor de papel; modo="topo" = frase no alto, foto embaixo).
 Vídeo real: reel_de_video("fotos/<video>.mp4", "posts/AAAA-MM-DD-slug.mp4", title=[...]).
 
 Uso:
@@ -296,6 +298,199 @@ def foto(path, title, label=None, body=None, foot=None, page=None, focus=(0.5, 0
     img.alpha_composite(_veu(alpha_topo=0.35, inicio=0.30 if H > 1400 else 0.36))
     d = ImageDraw.Draw(img)
     _bloco_inferior(img, d, label, title, body, title_size)
+    _footer(img, d, True, foot, page, swipe)
+    return img.convert("RGB")
+
+
+def _recorte(path, larg, alt, focus):
+    """Abre a foto e recorta larg x alt mantendo o ponto focus=(x, y) o mais perto possível do centro."""
+    from PIL import ImageOps
+    src = ImageOps.exif_transpose(Image.open(path)).convert("RGB")
+    esc = max(larg / src.width, alt / src.height)
+    nw, nh = int(src.width * esc + 0.5), int(src.height * esc + 0.5)
+    src = src.resize((nw, nh), Image.LANCZOS)
+    left = int(min(max(focus[0] * nw - larg / 2, 0), nw - larg))
+    top = int(min(max(focus[1] * nh - alt / 2, 0), nh - alt))
+    return src.crop((left, top, left + larg, top + alt)).convert("RGBA")
+
+
+def _veu_bloco(y_ini, y_cheio, alpha_meio, alpha_base, cor=None):
+    """Véu que começa em y_ini, chega a alpha_meio em y_cheio e a alpha_base na base (texto sobre foto)."""
+    cor = cor or NAVY
+    col = Image.new("L", (1, H))
+    for y in range(H):
+        if y <= y_ini:
+            a = 0.0
+        elif y <= y_cheio:
+            u = (y - y_ini) / max(1, y_cheio - y_ini); a = alpha_meio * (u * u * (3 - 2 * u))
+        else:
+            u = (y - y_cheio) / max(1, H - y_cheio); a = alpha_meio + (alpha_base - alpha_meio) * u
+        col.putpixel((0, y), int(255 * max(0.0, min(1.0, a))))
+    veu = Image.new("RGBA", (W, H), cor + (0,))
+    veu.putalpha(col.resize((W, H)))
+    return veu
+
+
+def _partes(linha):
+    """'texto *destaque* texto' -> [(texto, destaque?)]"""
+    return [(p, i % 2 == 1) for i, p in enumerate(linha.split("*")) if p]
+
+
+def _quebrar_frase(d, texto, f, maxw):
+    """Quebra uma frase com *destaques* em linhas, mantendo os asteriscos abertos/fechados em cada linha."""
+    palavras, linhas, cur, aberto = texto.split(), [], [], False
+    for w in palavras:
+        teste = " ".join(cur + [w]).replace("*", "")
+        if cur and d.textlength(teste, font=f) > maxw:
+            linha = " ".join(cur)
+            if aberto and linha.count("*") % 2 == 1:
+                linha += "*"
+            linhas.append(linha)
+            cur = (["*" + w] if aberto and not w.startswith("*") else [w])
+        else:
+            cur.append(w)
+        aberto ^= (w.count("*") % 2 == 1)
+    if cur:
+        linhas.append(" ".join(cur))
+    return linhas
+
+
+def frase(path, frase, modo="base", label=None, apoio=None, assinatura="Luis Dornela", cargo=None,
+          aspas=False, foot=None, page=None, swipe=False, focus=(0.5, 0.35), size=None):
+    """Foto do Luis + frase (estilo dos perfis de líderes: foto grande, frase curta com destaque).
+    Use para frases ditas por ele (aspas=True; texto fiel à transcrição do Banco de mídia) ou para uma
+    informação/ideia relevante (aspas=False). Feed 1080x1350 ou story 1080x1920.
+    path: foto em fotos/ (foto da equipe ou quadro de vídeo). focus=(x, y): posição do rosto (campo Foco).
+    frase: lista de linhas ou texto corrido (quebra automática); trechos entre *asteriscos* são o destaque.
+    modo="base": foto em tela cheia, nome nos cantos superiores, frase em faixas cor de papel na parte de baixo.
+    modo="topo": fundo marinho, frase grande no alto, foto na metade de baixo, fundida ao fundo.
+    label: contexto curto (ex.: "Entrevista · Jovem Pan News"). apoio: linha menor abaixo da frase.
+    assinatura/cargo: crédito (só nome e cargo informados na Base ou pela equipe; None para omitir).
+    Carrossel: capa com page="01/05" e swipe=True; os slides seguintes seguem nos layouts da marca."""
+    texto = frase if isinstance(frase, str) else " ".join(frase)
+    if modo == "topo":
+        return _frase_topo(path, frase, texto, label, apoio, assinatura, cargo, aspas, foot, page, swipe, focus, size)
+    img = _recorte(path, W, H, focus)
+    d = ImageDraw.Draw(img)
+    size = size or (68 if len(texto) <= 70 else 60 if len(texto) <= 110 else 54)
+    f_reg = font("serif", size)
+    linhas = frase if not isinstance(frase, str) else _quebrar_frase(d, texto, f_reg, W - 2 * M - 60)
+    if aspas:
+        linhas = list(linhas)
+        linhas[0] = "\u201c" + linhas[0]
+        linhas[-1] = linhas[-1] + "\u201d"
+    px, py, alt = 24, int(size * 0.20), int(size * 1.30)
+    larguras = []
+    for ln in linhas:
+        larguras.append(sum(d.textlength(t, font=font("serif-i" if it else "serif", size)) for t, it in _partes(ln)))
+    fb = font("sans-l", 28)
+    apoio_l = wrap(d, apoio, fb, W - 2 * M - 40) if apoio else []
+    cred = (assinatura.upper() + (f" · {cargo.upper()}" if cargo else "")) if (aspas and assinatura) else None
+    bloco = (64 if label else 0) + len(linhas) * alt + (28 + 42 * len(apoio_l) if apoio_l else 0) + (58 if cred else 0)
+    y = img.height - BOT - 210 - bloco
+    img.alpha_composite(_veu_bloco(y - 280, y + 20, 0.72, 0.92))   # véu sob o bloco de texto e o rodapé
+    if assinatura:
+        img.alpha_composite(_veu(alpha_topo=0.45, inicio=0.20, alpha_base=0.0))   # sombra leve no topo
+    d = ImageDraw.Draw(img)
+    if assinatura:                                    # nome nos cantos superiores, discreto
+        partes = assinatura.split(" ", 1)
+        fn = font("sans-sb", 22)
+        yn = 92 + TOP
+        spaced(d, M, yn, partes[0], fn, OFF, 0.30)
+        if len(partes) > 1:
+            spaced(d, W - M - spaced_width(d, partes[1], fn, 0.30), yn, partes[1], fn, OFF, 0.30)
+    if label:
+        fl = font("sans-sb", 20); lw = spaced_width(d, label, fl)
+        d.line([(W - 56) / 2, y, (W + 56) / 2, y], fill=CARAMEL, width=2)
+        spaced(d, (W - lw) / 2, y + 18, label, fl, G2)
+        y += 64
+    ov = Image.new("RGBA", img.size, (0, 0, 0, 0)); od = ImageDraw.Draw(ov)
+    for ln, lw in zip(linhas, larguras):              # faixas cor de papel, uma por linha (centralizadas)
+        x = (W - lw) / 2
+        od.rectangle([x - px, y, x + lw + px, y + alt - 4], fill=PAPER + (255,))
+        y += alt
+    img.alpha_composite(ov)
+    d = ImageDraw.Draw(img)
+    y -= len(linhas) * alt
+    for ln, lw in zip(linhas, larguras):
+        x = (W - lw) / 2
+        rich_line(d, x, y + py - int(size * 0.10), ln, size, NAVY, BLUE)
+        y += alt
+    if apoio_l:
+        y += 28
+        for l in apoio_l:
+            d.text(((W - d.textlength(l, font=fb)) / 2, y), l, font=fb, fill=OFF); y += 42
+    if cred:
+        fc = font("sans-m", 18); cw = spaced_width(d, cred, fc, 0.24)
+        spaced(d, (W - cw) / 2, y + 26, cred, fc, G2, 0.24)
+    _footer(img, d, True, foot, page, swipe)
+    return img.convert("RGB")
+
+
+def _frase_topo(path, frase, texto, label, apoio, assinatura, cargo, aspas, foot, page, swipe, focus, size):
+    """modo='topo' de frase(): fundo marinho, frase no alto, foto embaixo fundida ao fundo."""
+    fundo = (3, 20, 48)
+    img = Image.new("RGBA", (W, H), fundo + (255,))
+    d = ImageDraw.Draw(img)
+    size = size or (64 if len(texto) <= 90 else 56 if len(texto) <= 130 else 50)
+    linhas = frase if not isinstance(frase, str) else _quebrar_frase(d, texto, font("serif", size), W - 2 * M)
+    if aspas:
+        linhas = list(linhas)
+        linhas[0] = "“" + linhas[0]
+        linhas[-1] = linhas[-1] + "”"
+    alt = int(size * 1.24)
+    fb = font("sans-l", 30)
+    apoio_l = wrap(d, apoio, fb, W - 2 * M - 40) if apoio else []
+    y = 150 + TOP
+    if label:
+        d.line([M, y, M + 56, y], fill=CARAMEL, width=2)
+        spaced(d, M, y + 20, label, font("sans-sb", 20), G2)
+        y += 90
+    else:
+        y += 10
+    topo_texto = y
+    fim_texto = y + len(linhas) * alt + (24 + 44 * len(apoio_l) if apoio_l else 0)
+    # foto na parte de baixo, começando logo abaixo do texto e fundida ao fundo
+    y_foto = max(int(H * 0.36), fim_texto - 40)
+    alt_foto = H - y_foto
+    foto_im = _recorte(path, W, alt_foto, focus)
+    mask = Image.new("L", (1, alt_foto))
+    for yy in range(alt_foto):
+        t = yy / alt_foto
+        a = min(1.0, t / 0.30) ** 1.4 if t < 0.30 else 1.0
+        if t > 0.80:                                   # escurece de leve a base para o rodapé
+            a = 1.0
+        mask.putpixel((0, yy), int(255 * a))
+    foto_im.putalpha(mask.resize((W, alt_foto)))
+    img.alpha_composite(foto_im, (0, y_foto))
+    img.alpha_composite(_veu_bloco(H - BOT - 330, H - BOT - 150, 0.62, 0.90, cor=fundo))   # rodapé legível
+    # destaque: faixa translúcida atrás do trecho entre asteriscos (como um marca-texto discreto)
+    ov = Image.new("RGBA", img.size, (0, 0, 0, 0)); od = ImageDraw.Draw(ov)
+    y = topo_texto
+    for ln in linhas:
+        x = M
+        for t, it in _partes(ln):
+            f = font("serif-i" if it else "serif", size)
+            tw = d.textlength(t, font=f)
+            if it:
+                t0 = t.lstrip(); x0 = x + (tw - d.textlength(t0, font=f))
+                od.rectangle([x0 - 10, y + int(size * 0.12), x + tw + 10, y + int(size * 1.18)],
+                             fill=(255, 255, 255, 34))
+            x += tw
+        y += alt
+    img.alpha_composite(ov)
+    d = ImageDraw.Draw(img)
+    y = topo_texto
+    for ln in linhas:
+        rich_line(d, M, y, ln, size, OFF, OFF)
+        y += alt
+    if apoio_l:
+        y += 24
+        for l in apoio_l:
+            d.text((M, y), l, font=fb, fill=G2); y += 44
+    if aspas and assinatura:
+        cred = assinatura.upper() + (f" · {cargo.upper()}" if cargo else "")
+        spaced(d, M, y + 22, cred, font("sans-m", 18), CARAMEL, 0.24)
     _footer(img, d, True, foot, page, swipe)
     return img.convert("RGB")
 

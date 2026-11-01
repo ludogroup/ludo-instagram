@@ -54,7 +54,7 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
 - Rico em dados: cada post traz ao menos 1 número, regra ou data verificável, com "Fonte: ..." na legenda.
 
 ## Estética (obrigatório)
-- Usar SEMPRE `marca/ludo_templates.py` (layouts: editorial, pontos, numero, manifesto, grafico, foto; vídeo:
+- Usar SEMPRE `marca/ludo_templates.py` (layouts: editorial, pontos, numero, manifesto, grafico, fluxo, foto, frase; vídeo:
   reel_de_video, só com gravação real; `reel` de artes está desativado desde 26/10/2026). Não criar layouts do zero fora dele. Para reproduzir um padrão visual que funciona
   nos concorrentes (ex.: foto em tela cheia com manchete), o LIAM pode acrescentar um layout novo ao
   `ludo_templates.py`, com a paleta e as fontes da marca, e registrá-lo no PDCA como teste.
@@ -108,6 +108,39 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
   assim que o token estiver no Make. Publicados pelo cenário "LIAM – Publicador Stories" (Graph API); o
   publicador do feed ignora itens "Story".
 
+## Luis em destaque: foto com frase (regra do usuário, 31/10/2026)
+O usuário quer humanizar mais e aparecer mais. Referências de estilo enviadas por ele: @rony (Rony Meisler),
+@g4.business e @guilhermebenchimol – foto grande do líder + frase curta com uma palavra em destaque.
+- Presença: o Luis aparece (foto real, quadro de vídeo ou corte) em pelo menos 1 dos 2 posts do feed por dia e em
+  pelo menos 1 dos 2 Stories por dia, sempre que houver material disponível no Banco de mídia.
+- "Foto com frase" (layout `frase`): no mínimo 3 por semana, como Feed avulso, capa de carrossel (01/05 + swipe)
+  ou Story. O LIAM pode aumentar com os dados; para reduzir abaixo de 3, só com orientação do usuário.
+  - Frase dita pelo Luis (`aspas=True`): trecho fiel da transcrição (Banco de mídia: Transcrição dos cortes e
+    transcrição completa na página de cada vídeo original). Pode tirar repetições e vícios de fala; nunca
+    acrescentar palavra nem mudar o sentido. `label` = origem (ex.: "Entrevista · Jovem Pan News");
+    assinatura "Luis Dornela", cargo "CEO do Ludo Group".
+  - Frase com informação relevante (`aspas=False`): dado, regra ou ideia do tema do dia, com fonte na legenda;
+    sem aspas e sem atribuir ao Luis algo que ele não disse.
+- Imagem: fotos da equipe e quadros (fotos) tirados dos vídeos originais pela rotina de mídias (`midia.py quadros`),
+  ou montagem da foto real do Luis com fundo e textos da marca (modo "topo"). Nunca rosto ou corpo do Luis gerado
+  por IA (etapa ainda não liberada). Prefira foto do mesmo evento da frase; se for de outro, o `label` cita o tema,
+  não o evento.
+- Quadros de vídeo contam no limite de fotos da pasta (abaixo). Frases de pastas encerradas podem ser usadas com
+  fotos de outras pastas.
+- Fila: Layout "frase" (e "foto"); Gancho "Frase do Luis" ou "Frase"; Teste A/B indica "fala do Luis" ou
+  "informação" para o motor comparar.
+
+## Referências da semana: pesquisa e post adaptado (regra do usuário, 31/10/2026)
+- Toda segunda, a rotina diária escolhe os 3 posts de maior engajamento relativo da semana (📊 Concorrentes – Posts:
+  curtidas + 3×comentários, dividido pela média do próprio perfil) entre concorrentes, influenciadores e perfis de
+  referência de estilo, mais o que aparecer em busca pública no LinkedIn, e registra em "🎨 Referências visuais"
+  (o que o post tem e a ideia para a Ludo).
+- Na mesma semana saem pelo menos 2 posts adaptados dessas referências: mesma estrutura, gancho e formato, com a
+  identidade visual da Ludo (templates, paleta, fontes, tom) e o estilo do Luis (foto com frase quando couber).
+  Texto, imagem e dados são sempre próprios. Origem = "concorrente: @perfil", "influenciador: @perfil" ou
+  "referência de estilo: @perfil", com o link do post de referência no Teste A/B. Reels de referência viram
+  Carrossel, Feed ou corte real.
+
 ## Limite por pasta: até 4–5 fotos e 2–3 vídeos (regra do usuário, 19/10/2026)
 Cada pasta da equipe (um evento, palestra, entrevista ou vídeo original = uma subpasta do Drive) rende no
 máximo 5 fotos (ideal 4) e 3 cortes de vídeo (ideal 2) no total, somando todos os posts e Stories. Cada foto
@@ -133,12 +166,12 @@ início da janela (06:55, 11:55, 17:55 ou 20:55) para sair na hora cheia, e use 
 
 ## Especificações técnicas
 - Feed: 1 JPEG 1080x1350 → "Link da imagem".
-- Carrossel: SEMPRE 5 JPEGs 1080x1350 (capa `editorial` ou `foto` com swipe=True e page="01/05"; slides 02-04 com
+- Carrossel: SEMPRE 5 JPEGs 1080x1350 (capa `editorial`, `foto` ou `frase` com swipe=True e page="01/05"; slides 02-04 com
   conteúdo; 05 fechamento `manifesto` ou CTA) → "Link da imagem" (slide 1) + "Slide 2" a "Slide 5".
 - Reels de artes (`reel`): desativado desde 26/10/2026 (regra do usuário: vídeo só com gravação real).
 - Reels com vídeo real: corte pronto do Banco de mídia, usado como está (Link → "Link do vídeo", Capa → "Link da
   imagem", Layout "video"); ou `reel_de_video("fotos/<video>", "posts/...mp4", title=[...], duracao=...)`.
-- Story: 1 JPEG 1080x1920 (set_formato("story"); layouts editorial, numero, foto, manifesto) → "Link da imagem",
+- Story: 1 JPEG 1080x1920 (set_formato("story"); layouts editorial, numero, foto, frase, manifesto) → "Link da imagem",
   ou vídeo 9:16 de 3 a 60 s, só com gravação real → "Link do vídeo" (+ capa em "Link da imagem"). Formato "Story" na Fila. Sem link,
   enquete ou figurinhas pela API: a arte se explica sozinha (ex.: dado-chave + "post completo no perfil").
 - Vídeos: até 18 MB por arquivo (o jsDelivr não serve arquivos acima de 20 MB).
@@ -158,6 +191,8 @@ início da janela (06:55, 11:55, 17:55 ou 20:55) para sair na hora cheia, e use 
   com `liam/midia.py`:
   - fotos: JPEG sem EXIF/GPS em `fotos/`, com foco (rosto), qualidade e descrição; as 5 melhores da pasta entram
     no Banco de mídia como "disponível", as demais como "descartado";
+  - quadros de vídeo: fotos do Luis tiradas dos vídeos originais (`quadros`), nos momentos das melhores frases,
+    tratadas como fotos (contam no limite da pasta) e catalogadas como Tipo "Foto", título "Quadro de vídeo – ...";
   - vídeos: transcrição (Whisper), no máximo 3 cortes de 20 a 60 s por pasta (ideal 2), Reels 1080x1920 com recorte que
     acompanha o rosto, legendas na identidade Ludo, título e capa em `fotos/cortes/`; cópia dos cortes em
     `_LIAM/cortes` dentro da própria pasta do Drive (a equipe vê o resultado).

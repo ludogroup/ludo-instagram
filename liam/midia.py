@@ -19,6 +19,10 @@ Comandos que rodam no Mac (shell do Cowork: python3 + ffmpeg; cada chamada tem n
                                        recorte em alta qualidade, HDR do iPhone convertido para SDR.
                                        Até ~40 s por chamada; partes maiores: vários trechos + `juntar`.
   juntar <partes...> <saida.mp4>       une partes sem recodificar
+  quadros <video> <pasta_saida> [--tempos 12.5,40,95] [--n 12 --de S --ate S] [--prefixo slug]
+                                       fotos (JPEG, lado maior até 2160, HDR convertido) tiradas do vídeo
+                                       original, para posts "foto com frase" do Luis. Sem --tempos: --n
+                                       quadros espaçados entre --de e --ate. Depois, na nuvem: `foto` + `folha`.
   corte <trecho.mp4> <saida.mp4> --legendas segs.json --titulo "Linha|com *destaque*" [--rotulo X]
         [--rodape X] [--modo auto|recorte|moldura] [--preset fast] [--mosaico]
                                        Reels 1080x1920 pronto: recorte vertical que acompanha o rosto (ou
@@ -32,7 +36,7 @@ Comandos que rodam na nuvem (pip install pillow pillow-heif sherpa-onnx numpy op
   transcrever <audio> <saida.json> [--modelo base|small] [--frases] [--de S --ate S] [--desloca S]
                                        Whisper (sherpa-onnx) + detector de voz -> JSON e .txt com tempos.
                                        Vídeo inteiro: --modelo base. Legenda de um corte: --modelo small --frases.
-`corte`, `trecho` e `juntar` também rodam na nuvem. Preparar o Mac: liam/preparar_mac.sh.
+`corte`, `trecho`, `juntar` e `quadros` também rodam na nuvem. Preparar o Mac: liam/preparar_mac.sh.
 """
 import argparse
 import json
@@ -242,6 +246,36 @@ def cmd_juntar(a):
     rodar(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", lista, "-c", "copy",
            "-movflags", "+faststart", a.saida])
     print(json.dumps({"saida": a.saida, "duracao_s": round(sondar(a.saida)["duracao"], 1)}))
+
+
+def cmd_quadros(a):
+    """Quadros (fotos) de um vídeo original: o Luis falando, para posts de foto com frase."""
+    a.video = achar(a.video)
+    info = sondar(a.video)
+    dur = info["duracao"] or 0.0
+    if a.tempos:
+        tempos = [float(t) for t in str(a.tempos).replace(";", ",").split(",") if t.strip()]
+    else:
+        de = float(a.de or 0)
+        ate = min(float(a.ate), dur) if a.ate else dur
+        n = max(1, int(a.n))
+        tempos = [de + (ate - de) * (i + 0.5) / n for i in range(n)]
+    tempos = [t for t in tempos if 0 <= t < max(dur, 0.1)]
+    w, h = info["largura"], info["altura"]
+    esc = min(1.0, 2160 / max(w, h, 1))
+    w2, h2 = par(w * esc), par(h * esc)
+    saida = Path(a.saida)
+    saida.mkdir(parents=True, exist_ok=True)
+    base = a.prefixo or re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKD", Path(a.video).stem)
+                               .encode("ascii", "ignore").decode().lower()).strip("-")
+    res = []
+    for t in tempos:
+        destino = saida / f"{base}-q{int(round(t)):05d}.jpg"
+        rodar(["ffmpeg", "-y", "-v", "error", "-ss", f"{t:.3f}", "-i", a.video, "-frames:v", "1",
+               "-vf", _pre_video(info, w2, h2) + ",format=yuvj420p", "-q:v", "2", destino])
+        res.append({"arquivo": str(destino), "tempo_s": round(t, 1), "mm_ss": f"{int(t // 60):02d}:{int(t % 60):02d}"})
+    print(json.dumps({"video": str(a.video), "resolucao": f"{w2}x{h2}", "hdr_convertido": info["hdr"], "quadros": res},
+                     ensure_ascii=False, indent=1))
 
 
 # =========================================================================== rostos
@@ -831,6 +865,15 @@ def main():
     p = sub.add_parser("juntar", help="juntar parte1.mp4 parte2.mp4 ... saida.mp4")
     p.add_argument("partes", nargs="+")
     p.set_defaults(f=None)
+    p = sub.add_parser("quadros")
+    p.add_argument("video")
+    p.add_argument("saida")
+    p.add_argument("--tempos")
+    p.add_argument("--n", default=12)
+    p.add_argument("--de")
+    p.add_argument("--ate")
+    p.add_argument("--prefixo")
+    p.set_defaults(f=cmd_quadros)
     p = sub.add_parser("foto")
     p.add_argument("arquivos", nargs="+")
     p.add_argument("--saida", required=True)
