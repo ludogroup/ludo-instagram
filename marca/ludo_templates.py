@@ -302,11 +302,19 @@ def foto(path, title, label=None, body=None, foot=None, page=None, focus=(0.5, 0
     return img.convert("RGB")
 
 
-def _recorte(path, larg, alt, focus):
-    """Abre a foto e recorta larg x alt mantendo o ponto focus=(x, y) o mais perto possível do centro."""
+AMPLIACAO_MAX_LUIS = 1.15   # Padrão de imagem do Luis (02/11/2026): foto pequena demais estraga a nitidez
+
+
+def _recorte(path, larg, alt, focus, ampliacao_max=None):
+    """Abre a foto e recorta larg x alt mantendo o ponto focus=(x, y) o mais perto possível do centro.
+    ampliacao_max: recusa a foto se precisar ampliar mais que isso (fotos do Luis em frase())."""
     from PIL import ImageOps
     src = ImageOps.exif_transpose(Image.open(path)).convert("RGB")
     esc = max(larg / src.width, alt / src.height)
+    if ampliacao_max and esc > ampliacao_max and os.environ.get("LIAM_PERMITIR_FOTO_PEQUENA") != "1":
+        raise ValueError(f"{path}: {src.width}x{src.height} é pequena para {larg}x{alt} (ampliação {esc:.2f}x > "
+                         f"{ampliacao_max}). Padrão de imagem do Luis: use foto aprovada no Banco de mídia "
+                         f"(Nota da imagem >= 75) ou frase(None, ...) sem foto.")
     nw, nh = int(src.width * esc + 0.5), int(src.height * esc + 0.5)
     src = src.resize((nw, nh), Image.LANCZOS)
     left = int(min(max(focus[0] * nw - larg / 2, 0), nw - larg))
@@ -360,7 +368,10 @@ def frase(path, frase, modo="base", label=None, apoio=None, assinatura="Luis Dor
     """Foto do Luis + frase (estilo dos perfis de líderes: foto grande, frase curta com destaque).
     Use para frases ditas por ele (aspas=True; texto fiel à transcrição do Banco de mídia) ou para uma
     informação/ideia relevante (aspas=False). Feed 1080x1350 ou story 1080x1920.
-    path: foto em fotos/ (foto da equipe ou quadro de vídeo). focus=(x, y): posição do rosto (campo Foco).
+    path: foto em fotos/ aprovada no Padrão de imagem do Luis (Nota da imagem >= 75 no Banco de mídia).
+    focus=(x, y): posição do rosto (campo Foco). path=None: frase tipográfica, sem foto (modo "topo"), para
+    quando não houver foto aprovada; nunca use foto fraca só para cumprir a presença do Luis.
+    Recusa (ValueError) foto que precise de ampliação > 1,15x no recorte.
     frase: lista de linhas ou texto corrido (quebra automática); trechos entre *asteriscos* são o destaque.
     modo="base": foto em tela cheia, nome nos cantos superiores, frase em faixas cor de papel na parte de baixo.
     modo="topo": fundo marinho, frase grande no alto, foto na metade de baixo, fundida ao fundo.
@@ -368,9 +379,9 @@ def frase(path, frase, modo="base", label=None, apoio=None, assinatura="Luis Dor
     assinatura/cargo: crédito (só nome e cargo informados na Base ou pela equipe; None para omitir).
     Carrossel: capa com page="01/05" e swipe=True; os slides seguintes seguem nos layouts da marca."""
     texto = frase if isinstance(frase, str) else " ".join(frase)
-    if modo == "topo":
+    if modo == "topo" or path is None:
         return _frase_topo(path, frase, texto, label, apoio, assinatura, cargo, aspas, foot, page, swipe, focus, size)
-    img = _recorte(path, W, H, focus)
+    img = _recorte(path, W, H, focus, ampliacao_max=AMPLIACAO_MAX_LUIS)
     d = ImageDraw.Draw(img)
     size = size or (68 if len(texto) <= 70 else 60 if len(texto) <= 110 else 54)
     f_reg = font("serif", size)
@@ -428,10 +439,13 @@ def frase(path, frase, modo="base", label=None, apoio=None, assinatura="Luis Dor
 
 
 def _frase_topo(path, frase, texto, label, apoio, assinatura, cargo, aspas, foot, page, swipe, focus, size):
-    """modo='topo' de frase(): fundo marinho, frase no alto, foto embaixo fundida ao fundo."""
+    """modo='topo' de frase(): fundo marinho, frase no alto, foto embaixo fundida ao fundo.
+    path=None: só tipografia (frase maior, centralizada na altura), sem foto."""
     fundo = (3, 20, 48)
     img = Image.new("RGBA", (W, H), fundo + (255,))
     d = ImageDraw.Draw(img)
+    if path is None:
+        size = size or (76 if len(texto) <= 90 else 66 if len(texto) <= 130 else 58)
     size = size or (64 if len(texto) <= 90 else 56 if len(texto) <= 130 else 50)
     linhas = frase if not isinstance(frase, str) else _quebrar_frase(d, texto, font("serif", size), W - 2 * M)
     if aspas:
@@ -442,6 +456,9 @@ def _frase_topo(path, frase, texto, label, apoio, assinatura, cargo, aspas, foot
     fb = font("sans-l", 30)
     apoio_l = wrap(d, apoio, fb, W - 2 * M - 40) if apoio else []
     y = 150 + TOP
+    if path is None:                                   # sem foto: bloco de texto no meio da arte
+        bloco = (90 if label else 10) + len(linhas) * alt + (24 + 44 * len(apoio_l) if apoio_l else 0) + 60
+        y = max(y, int((H - bloco) / 2) - 40)
     if label:
         d.line([M, y, M + 56, y], fill=CARAMEL, width=2)
         spaced(d, M, y + 20, label, font("sans-sb", 20), G2)
@@ -453,16 +470,20 @@ def _frase_topo(path, frase, texto, label, apoio, assinatura, cargo, aspas, foot
     # foto na parte de baixo, começando logo abaixo do texto e fundida ao fundo
     y_foto = max(int(H * 0.36), fim_texto - 40)
     alt_foto = H - y_foto
-    foto_im = _recorte(path, W, alt_foto, focus)
-    mask = Image.new("L", (1, alt_foto))
-    for yy in range(alt_foto):
-        t = yy / alt_foto
-        a = min(1.0, t / 0.30) ** 1.4 if t < 0.30 else 1.0
-        if t > 0.80:                                   # escurece de leve a base para o rodapé
-            a = 1.0
-        mask.putpixel((0, yy), int(255 * a))
-    foto_im.putalpha(mask.resize((W, alt_foto)))
-    img.alpha_composite(foto_im, (0, y_foto))
+    if path is None:
+        foto_im = None
+    else:
+        foto_im = _recorte(path, W, alt_foto, focus, ampliacao_max=AMPLIACAO_MAX_LUIS)
+    if foto_im is not None:
+        mask = Image.new("L", (1, alt_foto))
+        for yy in range(alt_foto):
+            t = yy / alt_foto
+            a = min(1.0, t / 0.30) ** 1.4 if t < 0.30 else 1.0
+            if t > 0.80:                               # escurece de leve a base para o rodapé
+                a = 1.0
+            mask.putpixel((0, yy), int(255 * a))
+        foto_im.putalpha(mask.resize((W, alt_foto)))
+        img.alpha_composite(foto_im, (0, y_foto))
     img.alpha_composite(_veu_bloco(H - BOT - 330, H - BOT - 150, 0.62, 0.90, cor=fundo))   # rodapé legível
     # destaque: faixa translúcida atrás do trecho entre asteriscos (como um marca-texto discreto)
     ov = Image.new("RGBA", img.size, (0, 0, 0, 0)); od = ImageDraw.Draw(ov)

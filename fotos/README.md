@@ -18,5 +18,22 @@ O LIAM usa fotos e vídeos reais para humanizar os posts (eventos, palestras, fe
   legendado, com título e capa) em `fotos/cortes/`. Uma cópia fica em `_LIAM/cortes` na pasta do Drive.
 - Tudo é catalogado no 🎞️ Banco de mídia (Notion), de onde a rotina diária escolhe o que postar.
 
+## Fotos do Luis (padrão de 02/11/2026)
+
+O Luis aparece em vários posts por semana ("foto com frase"). Para ele sair bonito e com cara de marca premium,
+o LIAM só usa fotos que passam no "Padrão de imagem do Luis" (`marca/ESTRATEGIA.md`). O que mais ajuda:
+
+- **Ensaio a cada 2–3 meses** (30–40 fotos): fotógrafo, ou iPhone com luz de janela de lado/frente. Arquivo
+  original, sem filtro. Subpasta `AAMMDD_Ensaio_Luis` com `contexto.txt` dizendo "Luis Dornela, CEO do Ludo Group".
+- **Variações:** close e meio corpo olhando para a câmera (sorriso leve e sério confiante); meio corpo com
+  espaço vazio acima da cabeça, na vertical (para a frase); em ação (palestra, reunião sem rosto de cliente,
+  escritórios do Itaim e de Campinas); em pé ou andando, corpo inteiro; detalhes (mãos, caneta, sem documentos).
+- **Roupa:** 2 ou 3 trocas (terno marinho ou cinza, camisa branca ou azul-clara; uma casual elegante).
+- **Evitar:** câmera de baixo para cima, contraluz, luz de teto dura, TV ou telas ligadas ao fundo, celular na
+  mão, bagunça, marcas de terceiros.
+- **Vídeos:** celular ou câmera em 4K ou 1080p, de frente, na altura dos olhos, com luz no rosto. Entrevista
+  remota: grave o seu lado no próprio celular ou peça o arquivo em alta à emissora; a imagem da videochamada
+  não serve para fotos.
+
 Atenção: este repositório é público. Coloque na pasta só material que pode ir para o Instagram e com
 autorização de quem aparece. Não é preciso apagar nada depois: o LIAM controla o que já foi tratado.

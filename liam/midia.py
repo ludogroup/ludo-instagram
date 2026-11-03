@@ -20,19 +20,29 @@ Comandos que rodam no Mac (shell do Cowork: python3 + ffmpeg; cada chamada tem n
                                        Até ~40 s por chamada; partes maiores: vários trechos + `juntar`.
   juntar <partes...> <saida.mp4>       une partes sem recodificar
   quadros <video> <pasta_saida> [--tempos 12.5,40,95] [--n 12 --de S --ate S] [--prefixo slug]
+          [--rajada 7 --janela 1.2 --manter 2] [--min-lado 1080] [--forcar]
                                        fotos (JPEG, lado maior até 2160, HDR convertido) tiradas do vídeo
-                                       original, para posts "foto com frase" do Luis. Sem --tempos: --n
-                                       quadros espaçados entre --de e --ate. Depois, na nuvem: `foto` + `folha`.
+                                       ORIGINAL, para posts "foto com frase" do Luis. Em cada momento tira uma
+                                       rajada (7 quadros em 1,2 s) e guarda os 2 de rosto mais nítido, para o
+                                       LIAM escolher a melhor expressão. Recusa vídeo com lado menor < 1080 px
+                                       (webcam, videochamada, transmissão). Sem --tempos: --n momentos entre
+                                       --de e --ate. Até ~8 momentos por chamada. Depois, na nuvem:
+                                       `foto --retrato` + `folha --rostos`.
   corte <trecho.mp4> <saida.mp4> --legendas segs.json --titulo "Linha|com *destaque*" [--rotulo X]
-        [--rodape X] [--modo auto|recorte|moldura] [--preset fast] [--mosaico]
+        [--rodape X] [--modo auto|recorte|moldura] [--preset fast] [--mosaico] [--t-capa S]
                                        Reels 1080x1920 pronto: recorte vertical que acompanha o rosto (ou
                                        moldura com fundo desfocado), legendas Ludo, título nos primeiros 4 s,
                                        rodapé com logo, áudio a -14 LUFS, arquivo <= 18 MB e capa JPEG.
 Comandos que rodam na nuvem (pip install pillow pillow-heif sherpa-onnx numpy opencv-python-headless):
-  foto <arquivos...> --saida DIR [--prefixo AAAA-MM-DD-slug]
+  foto <arquivos...> --saida DIR [--prefixo AAAA-MM-DD-slug] [--retrato]
                                        JPEG limpo (sem EXIF/GPS, lado maior 2160), foco sugerido, nitidez,
-                                       data da foto e aviso de fotos quase iguais
-  folha <imagens...> --saida folha.jpg  folhas de contato numeradas (20 por folha) para revisar rápido
+                                       data da foto e aviso de fotos quase iguais. --retrato (fotos e quadros
+                                       do Luis): tratamento leve (níveis, exposição do rosto, nitidez suave;
+                                       nunca altera traços) e avaliação técnica do "Padrão de imagem do Luis"
+                                       (campo "retrato": aprovada, reprovada_por, nota_tecnica 0-100)
+  folha <imagens...> --saida folha.jpg [--rostos]
+                                       folhas de contato numeradas (20 por folha) para revisar rápido;
+                                       --rostos: recorte ampliado do rosto, para julgar olhos, boca e expressão
   transcrever <audio> <saida.json> [--modelo base|small] [--frases] [--de S --ate S] [--desloca S]
                                        Whisper (sherpa-onnx) + detector de voz -> JSON e .txt com tempos.
                                        Vídeo inteiro: --modelo base. Legenda de um corte: --modelo small --frases.
@@ -262,20 +272,71 @@ def cmd_quadros(a):
         tempos = [de + (ate - de) * (i + 0.5) / n for i in range(n)]
     tempos = [t for t in tempos if 0 <= t < max(dur, 0.1)]
     w, h = info["largura"], info["altura"]
+    if min(w, h) < int(a.min_lado) and not a.forcar:     # Padrão de imagem do Luis (02/11/2026)
+        print(json.dumps({"video": str(a.video), "resolucao": f"{w}x{h}", "quadros": [],
+                          "erro": f"vídeo com lado menor de {min(w, h)} px (< {a.min_lado}): webcam, videochamada, "
+                                  "transmissão ou exportação reduzida não servem para foto do Luis. Use o vídeo "
+                                  "original da câmera/celular ou fotos profissionais."}, ensure_ascii=False, indent=1))
+        sys.exit(2)
     esc = min(1.0, 2160 / max(w, h, 1))
     w2, h2 = par(w * esc), par(h * esc)
     saida = Path(a.saida)
     saida.mkdir(parents=True, exist_ok=True)
     base = a.prefixo or re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKD", Path(a.video).stem)
                                .encode("ascii", "ignore").decode().lower()).strip("-")
+    rajada, janela, manter = max(1, int(a.rajada)), max(0.2, float(a.janela)), max(1, int(a.manter))
+    detectar = None
+    if rajada > 1:
+        try:
+            detectar = _detector_pontos()
+        except Exception as e:                                # Mac sem OpenCV: guarda a rajada inteira
+            print(f"[aviso] sem detector de rostos ({e}); a rajada inteira fica para a revisão", file=sys.stderr)
     res = []
     for t in tempos:
-        destino = saida / f"{base}-q{int(round(t)):05d}.jpg"
-        rodar(["ffmpeg", "-y", "-v", "error", "-ss", f"{t:.3f}", "-i", a.video, "-frames:v", "1",
-               "-vf", _pre_video(info, w2, h2) + ",format=yuvj420p", "-q:v", "2", destino])
-        res.append({"arquivo": str(destino), "tempo_s": round(t, 1), "mm_ss": f"{int(t // 60):02d}:{int(t % 60):02d}"})
-    print(json.dumps({"video": str(a.video), "resolucao": f"{w2}x{h2}", "hdr_convertido": info["hdr"], "quadros": res},
-                     ensure_ascii=False, indent=1))
+        nome = f"{base}-q{int(round(t)):05d}"
+        if rajada == 1:
+            destino = saida / f"{nome}.jpg"
+            rodar(["ffmpeg", "-y", "-v", "error", "-ss", f"{t:.3f}", "-i", a.video, "-frames:v", "1",
+                   "-vf", _pre_video(info, w2, h2) + ",format=yuvj420p", "-q:v", "2", destino])
+            res.append({"arquivo": str(destino), "tempo_s": round(t, 1), "mm_ss": _mmss(t)})
+            continue
+        ini = max(0.0, min(t - janela / 2, max(dur - janela, 0.0)))
+        tmp = saida / f".{nome}-r"
+        tmp.mkdir(exist_ok=True)
+        rodar(["ffmpeg", "-y", "-v", "error", "-ss", f"{ini:.3f}", "-i", a.video, "-t", f"{janela:.3f}",
+               "-vf", f"fps={rajada / janela:.4f}," + _pre_video(info, w2, h2) + ",format=yuvj420p",
+               "-frames:v", str(rajada), "-q:v", "2", str(tmp / "r%02d.jpg")])
+        candidatos = []
+        for k, arq in enumerate(sorted(tmp.glob("r*.jpg"))):
+            tk = ini + (k + 0.5) * janela / rajada
+            item = {"origem": arq, "tempo_s": round(tk, 2)}
+            if detectar:
+                from PIL import Image
+                import numpy as np
+                av = _avaliar_retrato(np.asarray(Image.open(arq).convert("RGB")), detectar)
+                item.update(nota_tecnica=av.get("nota_tecnica", 0), nitidez_rosto=av.get("nitidez_rosto"),
+                            reprovada_por=av.get("reprovada_por", []))
+            candidatos.append(item)
+        if detectar:
+            candidatos.sort(key=lambda c: (not c["reprovada_por"], c["nota_tecnica"]), reverse=True)
+            guardar = candidatos[:manter]
+        else:
+            guardar = candidatos
+        for j, c in enumerate(sorted(guardar, key=lambda c: c["tempo_s"]), 1):
+            destino = saida / f"{nome}-{j}.jpg"
+            Path(c["origem"]).replace(destino)
+            c.update(arquivo=str(destino), mm_ss=_mmss(c["tempo_s"]))
+            c.pop("origem")
+            res.append(c)
+        for resto in tmp.glob("*"):
+            resto.unlink()
+        tmp.rmdir()
+    print(json.dumps({"video": str(a.video), "resolucao": f"{w2}x{h2}", "hdr_convertido": info["hdr"],
+                      "rajada": rajada, "quadros": res}, ensure_ascii=False, indent=1))
+
+
+def _mmss(t):
+    return f"{int(t // 60):02d}:{int(t % 60):02d}"
 
 
 # =========================================================================== rostos
@@ -308,6 +369,135 @@ def _detector():
 
 def _principal(rostos):
     return max(rostos, key=lambda r: r[2] * r[3] * r[4])
+
+
+# =========================================================================== padrão de imagem do Luis
+# Regra do usuário (02/11/2026): imagens do Luis com qualidade profissional, para ele aparecer bonito e
+# comercialmente atraente. Aqui ficam os critérios TÉCNICOS (medidos); expressão, olhar, postura, fundo e roupa
+# são avaliados pelo LIAM olhando a foto (Manual do LIAM, "Padrão de imagem do Luis").
+PADRAO_LUIS = {
+    "ampliacao_max": 1.05,    # a foto precisa preencher 1080x1350 sem ampliar mais que 5%
+    "rosto_min_px": 200,      # altura do rosto no arquivo
+    "exposicao": (80, 190),   # luminância média do rosto (0-255), já com o tratamento leve
+    "nitidez_min": 30,        # variância do Laplaciano no rosto normalizado a 300 px (abaixo: tremida/desfocada)
+    "inclinacao_max": 12,     # graus (linha dos olhos)
+    "giro_max": 0.25,         # deslocamento do nariz em relação ao meio dos olhos (rosto muito de lado)
+}
+
+
+def _detector_pontos():
+    """Como _detector(), mas devolve também os 5 pontos do YuNet (olho dir., olho esq., nariz, cantos da boca):
+    bgr -> [(x, y, w, h, conf, pontos|None)]."""
+    import cv2
+    import numpy as np
+    _detector()                                                   # baixa o YuNet, se faltar
+    m = MODELOS / "face_detection_yunet_2023mar.onnx"
+    if m.exists() and m.stat().st_size > 100_000 and hasattr(cv2, "FaceDetectorYN"):
+        det = cv2.FaceDetectorYN.create(str(m), "", (320, 320), score_threshold=0.6)
+
+        def detectar(bgr):
+            bgr = np.ascontiguousarray(bgr)
+            det.setInputSize((bgr.shape[1], bgr.shape[0]))
+            _, f = det.detect(bgr)
+            return [] if f is None else [(*[float(v) for v in r[:4]], float(r[-1]), [float(v) for v in r[4:14]])
+                                         for r in f]
+        return detectar
+    simples = _detector()
+    return lambda bgr: [(*r, None) for r in simples(bgr)]
+
+
+def _avaliar_retrato(rgb, detectar, rgb_tratada=None):
+    """Critérios técnicos do Padrão de imagem do Luis para uma foto RGB (numpy). Devolve dict com medidas,
+    reprovada_por (lista de motivos), aprovada e nota_tecnica (0-100).
+    rgb = foto como veio (mede a nitidez real: o tratamento realça ruído); rgb_tratada = depois do _realce
+    (mede a exposição final)."""
+    import cv2
+    import numpy as np
+    h, w = rgb.shape[:2]
+    p = PADRAO_LUIS
+    av = {"largura": w, "altura": h, "ampliacao_feed": round(max(1080 / w, 1350 / h), 2)}
+    falhas = []
+    if av["ampliacao_feed"] > p["ampliacao_max"]:
+        falhas.append(f"resolução baixa: precisaria ampliar {av['ampliacao_feed']:.2f}x para 1080x1350")
+    sc = min(1.0, 1280 / max(w, h))
+    peq = cv2.resize(rgb, (round(w * sc), round(h * sc)), interpolation=cv2.INTER_AREA) if sc < 1 else rgb
+    rostos = detectar(cv2.cvtColor(peq, cv2.COLOR_RGB2BGR))
+    if not rostos:
+        falhas.append("rosto não detectado")
+        av.update(reprovada_por=falhas, aprovada=False, nota_tecnica=0)
+        return av
+    x, y, fw, fh, conf, pts = max(rostos, key=lambda r: r[2] * r[3] * r[4])
+    x, y, fw, fh = x / sc, y / sc, fw / sc, fh / sc
+    x0, y0, x1, y1 = int(max(0, x)), int(max(0, y)), int(min(w, x + fw)), int(min(h, y + fh))
+    cinza = cv2.cvtColor(np.ascontiguousarray(rgb[y0:y1, x0:x1]), cv2.COLOR_RGB2GRAY)
+    if cinza.size == 0:
+        av.update(reprovada_por=falhas + ["rosto cortado na borda"], aprovada=False, nota_tecnica=0)
+        return av
+    r300 = cv2.resize(cinza, (max(1, round(cinza.shape[1] * 300 / cinza.shape[0])), 300),
+                      interpolation=cv2.INTER_AREA if cinza.shape[0] > 300 else cv2.INTER_CUBIC)
+    nit = float(cv2.Laplacian(r300, cv2.CV_64F).var())
+    if rgb_tratada is not None and rgb_tratada.shape[:2] == rgb.shape[:2]:
+        exp_ = float(cv2.cvtColor(np.ascontiguousarray(rgb_tratada[y0:y1, x0:x1]), cv2.COLOR_RGB2GRAY).mean())
+    else:
+        exp_ = float(cinza.mean())
+    av.update(rosto_px=int(fh), rosto=[round((x + fw / 2) / w, 2), round((y + fh / 2) / h, 2)],
+              nitidez_rosto=round(nit, 1), exposicao_rosto=round(exp_), confianca=round(conf, 2))
+    incl = giro = 0.0
+    if pts:
+        rex, rey, lex, ley, nx, ny = [v / sc for v in pts[:6]]
+        dist = max(math.hypot(lex - rex, ley - rey), 1.0)
+        incl = math.degrees(math.atan2(ley - rey, lex - rex))
+        giro = (nx - (rex + lex) / 2) / dist
+        av.update(inclinacao=round(incl, 1), giro=round(giro, 2))
+    if fh < p["rosto_min_px"]:
+        falhas.append(f"rosto pequeno ({int(fh)} px; mínimo {p['rosto_min_px']})")
+    if nit < p["nitidez_min"]:
+        falhas.append(f"rosto desfocado ou tremido (nitidez {nit:.0f}; mínimo {p['nitidez_min']})")
+    if not p["exposicao"][0] <= exp_ <= p["exposicao"][1]:
+        falhas.append(f"rosto {'escuro' if exp_ < p['exposicao'][0] else 'estourado'} (luminância {exp_:.0f})")
+    if abs(incl) > p["inclinacao_max"]:
+        falhas.append(f"cabeça inclinada ({incl:.0f}°)")
+    if abs(giro) > p["giro_max"]:
+        falhas.append("rosto muito de lado")
+
+    def lim(v):
+        return max(0.0, min(1.0, v))
+    pose = lim(1 - abs(incl) / 20) * lim(1 - abs(giro) / 0.4)
+    expo = 1.0 if 95 <= exp_ <= 170 else lim(1 - min(abs(exp_ - 95), abs(exp_ - 170)) / 40)
+    nota = 100 * (0.25 * lim((1.25 - av["ampliacao_feed"]) / 0.25) + 0.15 * lim((fh - 150) / 200)
+                  + 0.30 * lim((nit - 20) / 60) + 0.15 * expo + 0.15 * pose)
+    av.update(reprovada_por=falhas, aprovada=not falhas, nota_tecnica=round(nota))
+    return av
+
+
+def _realce(im, detectar=None, afiar=True):
+    """Tratamento leve e clássico de retrato (PIL RGB -> PIL RGB): níveis automáticos, exposição do rosto
+    puxada para ~47% de luminância (expoente limitado), cor +4% e nitidez suave. Não altera traços: nada de IA
+    generativa, filtro de beleza, afinar rosto ou trocar fundo."""
+    from PIL import ImageEnhance, ImageFilter, ImageOps
+    import numpy as np
+    im2 = ImageOps.autocontrast(im, cutoff=(0.3, 0.3), preserve_tone=True)
+    if detectar is not None:
+        import cv2
+        a = np.asarray(im2)
+        sc = min(1.0, 1280 / max(a.shape[:2]))
+        peq = cv2.resize(a, (round(a.shape[1] * sc), round(a.shape[0] * sc)), interpolation=cv2.INTER_AREA)
+        r = detectar(cv2.cvtColor(peq, cv2.COLOR_RGB2BGR))
+        if r:
+            x, y, fw, fh = [int(v / sc) for v in max(r, key=lambda q: q[2] * q[3] * q[4])[:4]]
+            rosto = np.asarray(im2.convert("L"))[max(0, y):y + fh, max(0, x):x + fw]
+            lum = float(rosto.mean()) / 255 if rosto.size else 0.47
+            if lum < 0.40 or lum > 0.62:
+                e = float(np.clip(math.log(0.47) / math.log(min(max(lum, 0.05), 0.95)), 0.7, 1.35))
+                im2 = im2.point([round(255 * ((i / 255) ** e)) for i in range(256)] * 3)
+    im2 = ImageEnhance.Color(im2).enhance(1.04)
+    return _afiar(im2) if afiar else im2
+
+
+def _afiar(im):
+    """Nitidez suave (última etapa do tratamento; avalie a nitidez ANTES dela, senão o ruído vira 'nitidez')."""
+    from PIL import ImageFilter
+    return im.filter(ImageFilter.UnsharpMask(radius=1.4, percent=55, threshold=3))
 
 
 # =========================================================================== fotos (nuvem)
@@ -344,6 +534,13 @@ def cmd_foto(a):
     saida = Path(a.saida)
     saida.mkdir(parents=True, exist_ok=True)
     res, hashes, detectar = [], [], None
+    retrato = getattr(a, "retrato", False)
+    det_pontos = None
+    if retrato:
+        try:
+            det_pontos = _detector_pontos()
+        except Exception as e:
+            print(f"[aviso] --retrato sem detector ({e}): sem tratamento nem avaliação", file=sys.stderr)
     for i, arq in enumerate(a.arquivos, 1):
         arq = achar(arq)
         bruta = Image.open(arq)
@@ -353,6 +550,11 @@ def cmd_foto(a):
         esc = min(1.0, 2160 / max(w, h))
         if esc < 1:
             im = im.resize((round(w * esc), round(h * esc)), Image.LANCZOS)
+        original = tratada = None
+        if det_pontos:
+            original = im                                      # nitidez medida na foto como veio
+            tratada = _realce(im, det_pontos, afiar=False)     # exposição medida depois do tratamento leve
+            im = _afiar(tratada)
         if a.prefixo:
             nome = f"{a.prefixo}-{i}" if len(a.arquivos) > 1 else a.prefixo
         else:
@@ -387,6 +589,11 @@ def cmd_foto(a):
                 item["foco"] = [0.5, 0.4]
             if item["nitidez"] < 40:
                 item["alerta"] = "possivelmente desfocada"
+            if det_pontos:
+                item["retrato"] = _avaliar_retrato(np.asarray(original), det_pontos, np.asarray(tratada))
+                if item["retrato"].get("rosto"):
+                    cx, cy = item["retrato"]["rosto"]
+                    item["foco"] = [cx, round(min(0.7, cy + 0.08), 2)]
         except ImportError:
             pass
         res.append(item)
@@ -403,12 +610,30 @@ def cmd_folha(a):
     except OSError:
         fonte = ImageFont.load_default()
     cel, cols, linhas = 360, 5, 4
+    detectar = None
+    if getattr(a, "rostos", False):                     # recorte do rosto: olhos, boca e expressão visíveis
+        try:
+            detectar = _detector()
+        except Exception as e:
+            print(f"[aviso] --rostos sem detector ({e}); usando a imagem inteira", file=sys.stderr)
     saidas = []
     for pag in range(0, len(arquivos), cols * linhas):
         folha = Image.new("RGB", (cols * cel, linhas * cel), (24, 24, 24))
         d = ImageDraw.Draw(folha)
         for k, arq in enumerate(arquivos[pag:pag + cols * linhas]):
             im = ImageOps.exif_transpose(Image.open(arq)).convert("RGB")
+            if detectar:
+                import numpy as np
+                import cv2
+                sc = min(1.0, 1280 / max(im.size))
+                peq = im.resize((round(im.width * sc), round(im.height * sc))) if sc < 1 else im
+                r = detectar(cv2.cvtColor(np.asarray(peq), cv2.COLOR_RGB2BGR))
+                if r:
+                    x, y, fw, fh, _ = [v / sc for v in _principal(r)[:4]] + [0]
+                    lado = fh * 1.7
+                    cx, cy = x + fw / 2, y + fh * 0.55
+                    im = im.crop((int(cx - lado / 2), int(cy - lado / 2), int(cx + lado / 2), int(cy + lado / 2)))
+                    im = im.resize((cel - 12, cel - 12), Image.LANCZOS)
             im.thumbnail((cel - 12, cel - 12))
             x0, y0 = (k % cols) * cel, (k // cols) * cel
             folha.paste(im, (x0 + (cel - im.width) // 2, y0 + (cel - im.height) // 2))
@@ -810,7 +1035,7 @@ def cmd_corte(a):
 
     # 5) capa: mesmo enquadramento, com título e rodapé, sem legenda
     capa = Path(a.capa) if a.capa else saida.with_suffix(".jpg")
-    t_capa = min(1.2, dur / 2)
+    t_capa = min(max(float(a.t_capa), 0.0), max(dur - 0.1, 0.0)) if a.t_capa else min(1.2, dur / 2)
     if modo == "recorte":
         xc = _x_em(pts, t_capa) if pts else (W - cw) // 2
         fc = f"[0:v]{pre},crop={cw}:{H}:{xc}:0,scale=1080:1920:flags=lanczos[c]"
@@ -873,15 +1098,22 @@ def main():
     p.add_argument("--de")
     p.add_argument("--ate")
     p.add_argument("--prefixo")
+    p.add_argument("--rajada", default=7, help="quadros por momento (1 = um só, sem escolha)")
+    p.add_argument("--janela", default=1.2, help="segundos da rajada, centrada no momento")
+    p.add_argument("--manter", default=2, help="melhores quadros guardados por momento")
+    p.add_argument("--min-lado", default=1080, help="lado menor mínimo do vídeo (padrão de imagem do Luis)")
+    p.add_argument("--forcar", action="store_true", help="ignora --min-lado (só com orientação do usuário)")
     p.set_defaults(f=cmd_quadros)
     p = sub.add_parser("foto")
     p.add_argument("arquivos", nargs="+")
     p.add_argument("--saida", required=True)
     p.add_argument("--prefixo")
+    p.add_argument("--retrato", action="store_true", help="fotos do Luis: tratamento leve + avaliação técnica")
     p.set_defaults(f=cmd_foto)
     p = sub.add_parser("folha")
     p.add_argument("arquivos", nargs="+")
     p.add_argument("--saida", required=True)
+    p.add_argument("--rostos", action="store_true", help="recorte ampliado do rosto")
     p.set_defaults(f=cmd_folha)
     p = sub.add_parser("transcrever")
     p.add_argument("midia")
@@ -906,6 +1138,7 @@ def main():
     p.add_argument("--modo", default="auto", choices=["auto", "recorte", "moldura"])
     p.add_argument("--preset", default="medium")
     p.add_argument("--capa")
+    p.add_argument("--t-capa", help="segundo do corte usado na capa (escolha um quadro com boa expressão do Luis)")
     p.add_argument("--limite-mb", type=float, default=18.0)
     p.add_argument("--mosaico", action="store_true")
     p.set_defaults(f=cmd_corte)

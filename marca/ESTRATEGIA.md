@@ -129,6 +129,37 @@ O usuário quer humanizar mais e aparecer mais. Referências de estilo enviadas 
   fotos de outras pastas.
 - Fila: Layout "frase" (e "foto"); Gancho "Frase do Luis" ou "Frase"; Teste A/B indica "fala do Luis" ou
   "informação" para o motor comparar.
+- Qualidade vem antes da cota: só fotos aprovadas no "Padrão de imagem do Luis" (abaixo). Sem foto aprovada,
+  o Luis aparece pela frase tipográfica (`frase(None, ...)`, assinatura dele) ou por corte de vídeo real.
+
+## Padrão de imagem do Luis (regra do usuário, 02/11/2026)
+O Luis precisa aparecer bonito, confiante e comercialmente atraente, no nível dos retratos de @rony,
+@guilhermebenchimol e @g4.business. Melhor um post sem foto do que uma foto fraca. Motivo: em 02/11 saiu uma
+"foto com frase" com quadro de webcam da entrevista à Jovem Pan (1080x800, rosto mole, boca no meio de uma
+sílaba) e o usuário reprovou.
+- **Fontes, em ordem de preferência:** (1) ensaio ou fotos profissionais; (2) fotos de evento feitas por
+  fotógrafo; (3) quadros do vídeo ORIGINAL gravado com câmera ou celular (lado menor ≥ 1080 px).
+  **Proibido:** webcam, videochamada, entrevista remota, transmissão de TV, print de tela, quadro de corte/Reels
+  já editado ou de vídeo com legenda ou letreiro embutido, foto ampliada, selfie escura.
+- **Critério técnico** (`midia.py foto --retrato`, campo `retrato.aprovada`): preenche 1080x1350 sem ampliar mais
+  que 5%, rosto ≥ 200 px, rosto nítido, exposição do rosto entre 80 e 190, cabeça reta (≤ 12°), rosto não muito
+  de lado. `frase()` recusa foto que precise de ampliação > 1,15x.
+- **Avaliação visual = Nota da imagem (0–100)**, olhando a foto inteira e o rosto ampliado (`folha --rostos`):
+  expressão 25 (olhos abertos, olhar para a câmera ou para o interlocutor, boca fechada ou sorriso natural; nunca
+  no meio de uma sílaba, careta, testa franzida ou olhar perdido) · luz 15 (rosto bem iluminado, sem sombra dura,
+  sem estourar, pele natural) · nitidez dos olhos 15 · enquadramento 15 (rosto e tronco dominam a foto, plano
+  médio ou close, espaço para a frase; corpo inteiro só em foto profissional) · postura e ângulo 10 (ereto, câmera
+  na altura dos olhos; nada de câmera de baixo, papada, ombro caído) · fundo e roupa 10 (fundo limpo e sóbrio, sem
+  TV ou telas, celular na mão, bagunça ou marcas de terceiros; roupa alinhada) · resolução 10.
+  Nota ≥ 75 para usar; ≥ 85 para foto em tela cheia (`frase` modo "base", `foto`) e capas de carrossel.
+  Qualidade no Banco de mídia: Alta = 85+, Média = 75–84, Baixa = < 75 (status "descartado" para o Luis).
+- **Tratamento** (automático no `foto --retrato`): níveis, exposição do rosto, cor +4% e nitidez suave. Proibido:
+  alterar traços, afinar rosto ou corpo, filtro de beleza, IA generativa ou upscale por IA no rosto, trocar fundo.
+- **Quadros de vídeo:** `quadros` tira rajadas (7 quadros em 1,2 s por momento) e guarda os 2 de rosto mais
+  nítido; o LIAM escolhe o de melhor expressão. Recusa vídeo com lado menor < 1080 px.
+- **Capa de Reels com o Luis:** o quadro da capa passa pela mesma avaliação visual (escolha o segundo com `corte --t-capa S`).
+- **Estoque baixo** (menos de 3 fotos aprovadas disponíveis): avisar o usuário no final da rotina e pedir à
+  equipe fotos novas conforme o briefing de `fotos/README.md` ("Fotos do Luis").
 
 ## Referências da semana: pesquisa e post adaptado (regra do usuário, 31/10/2026)
 - Toda segunda, a rotina diária escolhe os 3 posts de maior engajamento relativo da semana (📊 Concorrentes – Posts:
@@ -191,8 +222,9 @@ início da janela (06:55, 11:55, 17:55 ou 20:55) para sair na hora cheia, e use 
   com `liam/midia.py`:
   - fotos: JPEG sem EXIF/GPS em `fotos/`, com foco (rosto), qualidade e descrição; as 5 melhores da pasta entram
     no Banco de mídia como "disponível", as demais como "descartado";
-  - quadros de vídeo: fotos do Luis tiradas dos vídeos originais (`quadros`), nos momentos das melhores frases,
-    tratadas como fotos (contam no limite da pasta) e catalogadas como Tipo "Foto", título "Quadro de vídeo – ...";
+  - quadros de vídeo: fotos do Luis tiradas dos vídeos originais (`quadros`, em rajadas), nos momentos das
+    melhores frases, tratadas como fotos (`foto --retrato`; contam no limite da pasta) e catalogadas como Tipo
+    "Foto", título "Quadro de vídeo – ...", só se passarem no "Padrão de imagem do Luis";
   - vídeos: transcrição (Whisper), no máximo 3 cortes de 20 a 60 s por pasta (ideal 2), Reels 1080x1920 com recorte que
     acompanha o rosto, legendas na identidade Ludo, título e capa em `fotos/cortes/`; cópia dos cortes em
     `_LIAM/cortes` dentro da própria pasta do Drive (a equipe vê o resultado).
