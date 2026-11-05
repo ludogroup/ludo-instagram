@@ -10,6 +10,8 @@ gravação real da pasta do Drive). Conteúdo de artes vira Carrossel ou Feed.
 Layouts: editorial, pontos, numero (big_size para números longos), manifesto,
 fluxo (diagrama estilo Sankey: origem → destinos, valores proporcionais),
 grafico (dados oficiais em barras/linha; referencia=(valor, rótulo) traça linha de meta/teto),
+degraus (decisões que valem até a próxima, como a meta Selic por reunião do Copom: uma data por decisão,
+         degraus em vez de diagonais; NUNCA use grafico(tipo='linha') para a trajetória da Selic),
 foto (foto real de pessoas/eventos da pasta fotos/, com véu marinho e título),
 frase (foto do Luis + frase com destaque: fala real dele entre aspas ou informação relevante;
        modo="base" = foto em tela cheia e frase em faixas cor de papel; modo="topo" = frase no alto, foto embaixo).
@@ -651,6 +653,77 @@ def grafico(label, title, dados, unidade="", fonte=None, foot=None, dark=False, 
     d = ImageDraw.Draw(img)
     if fonte:
         d.text((M, y1 + 76), f"Fonte: {fonte}", font=font("sans", 20), fill=soft)
+    _footer(img, d, dark, foot, page)
+    return img.convert("RGB")
+
+
+def degraus(label, title, dados, unidade="%", fonte=None, foot=None, dark=True, page=None, title_size=58,
+            casas=2, nota=None, eixo=None):
+    """Gráfico em degraus para decisões que valem até a próxima (ex.: meta Selic por reunião do Copom).
+    dados: [('data da decisão', valor), ...], um ponto por decisão (até 9). Cada valor fica em linha reta
+    até a decisão seguinte e cai ou sobe em degrau (nunca em diagonal). Variações ficam marcadas em caramelo
+    ('−0,25'); decisão igual à anterior sai como 'mantida'. O último ponto fica em destaque.
+    eixo: rótulos extras sob as datas (ex.: meses). nota: [(texto, 'sans-sb' | 'sans-m'), ...] no canto
+    superior direito (área livre quando a série cai)."""
+    bg = NAVY if dark else PAPER
+    img = Image.new("RGBA", (W, H), bg + (255,)); d = ImageDraw.Draw(img)
+    ink, soft, acc = (OFF, G2, _h("8fa5ff")) if dark else (NAVY, GRAPH, BLUE)
+    d.line([M, 150 + TOP, M + 56, 150 + TOP], fill=CARAMEL, width=2)
+    spaced(d, M, 170 + TOP, label, font("sans-sb", 20), soft)
+    y = 260 + TOP
+    for line in title:
+        rich_line(d, M - 3, y, line, title_size, ink, acc); y += int(title_size * 1.2)
+    n = len(dados); vals = [v for _, v in dados]
+    y0, y1 = y + 110, H - BOT - 330
+    x0, x1 = M, W - M
+    lo, hi = min(vals), max(vals)
+    span = (hi - lo) or 1.0
+    py0, py1 = y0 + 70, y1 - 110                     # faixa dos pontos: espaço p/ rótulos acima e abaixo
+    passo = (x1 - x0 - 80) / max(n - 1, 1)
+    pts = [(x0 + 40 + passo * i, py1 - (v - lo) / span * (py1 - py0)) for i, v in enumerate(vals)]
+    ov = Image.new("RGBA", img.size, (0, 0, 0, 0)); od = ImageDraw.Draw(ov)
+    regua = (255, 255, 255, 70) if dark else (0, 33, 77, 60)
+    od.line([x0, y1, x1, y1], fill=regua, width=2)
+    for i in range(n - 1):                           # degrau: horizontal até a próxima decisão, depois vertical
+        (xa, ya), (xb, yb) = pts[i], pts[i + 1]
+        od.line([(xa, ya), (xb, ya), (xb, yb)], fill=ink + (255,), width=5, joint="curve")
+    realce = acc
+    fv, fd, fm, fdel = font("sans-sb", 28), font("sans-sb", 22), font("sans-m", 19), font("sans-sb", 20)
+    for i, ((px, py), (rot, v)) in enumerate(zip(pts, dados)):
+        ultimo = i == n - 1
+        r = 12 if ultimo else 7
+        od.ellipse([px - r, py - r, px + r, py + r], fill=(realce if ultimo else ink) + (255,))
+        od.line([px, y1 - 10, px, y1], fill=regua, width=2)
+        mantida = i > 0 and abs(v - vals[i - 1]) < 1e-9
+        txt = fmt_valor(v, unidade, casas)
+        if ultimo:
+            tw = d.textlength(txt, font=font("sans-b", 34))
+            d.text((min(px - tw / 2, x1 - tw), py - 66), txt, font=font("sans-b", 34), fill=realce)
+            if mantida:                              # "MANTIDA" logo acima do valor em destaque
+                t2 = "MANTIDA"; w2 = spaced_width(d, t2, fdel, 0.2)
+                spaced(d, min(px - w2 / 2, x1 - w2), py - 100, t2, fdel, CARAMEL, 0.2)
+        else:
+            tw = d.textlength(txt, font=fv)
+            d.text((px - tw / 2, py + 18), txt, font=fv, fill=ink)
+        if i > 0 and not mantida:                    # tamanho do degrau, à esquerda do trecho vertical
+            dv = v - vals[i - 1]
+            t = ("−" if dv < 0 else "+") + fmt_valor(abs(dv), "", casas)
+            ym = (pts[i - 1][1] + py) / 2
+            d.text((px - 12 - d.textlength(t, font=fdel), ym - 12), t, font=fdel, fill=CARAMEL)
+        dw = d.textlength(rot, font=fd)
+        d.text((px - dw / 2, y1 + 20), rot, font=fd, fill=ink)
+        if eixo:
+            ew = d.textlength(eixo[i], font=fm)
+            d.text((px - ew / 2, y1 + 52), eixo[i], font=fm, fill=soft)
+    img.alpha_composite(ov)
+    d = ImageDraw.Draw(img)
+    if nota:
+        nx, ny = W - M - 385, y0 + 10
+        d.line([nx, ny - 18, nx + 40, ny - 18], fill=CARAMEL, width=2)
+        for k, (t, f) in enumerate(nota):
+            d.text((nx, ny + k * 40), t, font=font(f, 30), fill=ink if f == "sans-sb" else soft)
+    if fonte:
+        d.text((M, y1 + (100 if eixo else 76)), f"Fonte: {fonte}", font=font("sans", 20), fill=soft)
     _footer(img, d, dark, foot, page)
     return img.convert("RGB")
 
