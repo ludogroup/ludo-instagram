@@ -51,7 +51,9 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
   `fotos/cortes/` (Reels legendados, com título, rodapé e capa). Nos dados da conta, posts com pessoas/eventos
   tiveram alcance mediano ~10× maior que as artes recentes (comparação bruta, ainda misturada com a época; o LIAM
   está testando). Sempre que houver material disponível, use.
-- Rico em dados: cada post traz ao menos 1 número, regra ou data verificável, com "Fonte: ..." na legenda.
+- Rico em dados, na medida: todo post se apoia em informação verificável (número, regra ou data, com
+  "Fonte: ..." na legenda quando houver dado), mas no máximo 2 publicações por dia são estatísticas
+  (veja "Limite de posts estatísticos").
 
 ## Estética (obrigatório)
 - Usar SEMPRE `marca/ludo_templates.py` (layouts: editorial, pontos, numero, manifesto, grafico, fluxo, foto, frase; vídeo:
@@ -96,6 +98,23 @@ testes A/B e a própria grade semanal abaixo. Toda mudança relevante vai para o
   Carrossel. Sem vídeo real disponível, as duas são Feed e Carrossel (uma de cada).
   A grade acima indica o formato da vaga variada (a grade de 26/10/2026 trocou os Reels por Feed/Carrossel).
 
+## Limite de posts estatísticos (regra do usuário, 28/11/2026)
+- No máximo 2 publicações estatísticas por dia, somando Feed, Carrossel, Reels e Stories: tudo o que tem Data
+  de hoje na Fila, inclusive itens criados pelo usuário em outra conversa e extras de notícia do dia.
+  Um carrossel conta como 1, mesmo com vários slides de dados.
+- Estatística = a arte ou a capa é construída em torno de números: layouts `numero`, `grafico`, `degraus` ou
+  `fluxo`; carrossel de dados, indicadores ou "Resumo da Semana"; "frase com informação" cuja frase é um número
+  ou percentual; Story com o dado-chave ou "o número do dia".
+- Não é estatística: frase real do Luis, frase com ideia (sem número), lista prática, checklist, mito x verdade,
+  manifesto, bastidores, foto, convite, institucional e Reels com vídeo real. Citar regra, data ou fonte na
+  legenda não torna a publicação estatística.
+- Antes de criar, conte na Fila as estatísticas de hoje; atingidas 2, o que falta é não estatístico. Notícia
+  urgente com dado novo entra no lugar de uma estatística já planejada para hoje (troque ou adie), nunca como 3ª.
+- Padrão sugerido: 1 carrossel de dado + 1 Story com o dado-chave; o outro post e o outro Story com o Luis (frase
+  real, corte ou foto), lista prática ou manifesto, sem número em destaque. Sem falas inéditas do Luis, use
+  frase com ideia, lista prática ou mito x verdade, nunca uma 3ª arte de número.
+- Registre "estatístico" ou "não estatístico" em Teste A/B, para o PDCA comparar os dois grupos.
+
 ## Vídeos: só com gravação real (regra do usuário, 26/10/2026)
 - Reels e Stories em vídeo só com gravação real da pasta do Drive "Fotos e Vídeos Luis - LIAM" (cortes do
   🎞️ Banco de mídia ou `reel_de_video` com vídeo real). Sem gravação disponível, não há vídeo naquele dia.
@@ -120,7 +139,8 @@ O usuário quer humanizar mais e aparecer mais. Referências de estilo enviadas 
     acrescentar palavra nem mudar o sentido. `label` = origem (ex.: "Entrevista · Jovem Pan News");
     assinatura "Luis Dornela", cargo "CEO do Ludo Group".
   - Frase com informação relevante (`aspas=False`): dado, regra ou ideia do tema do dia, com fonte na legenda;
-    sem aspas e sem atribuir ao Luis algo que ele não disse.
+    sem aspas e sem atribuir ao Luis algo que ele não disse. Se a frase for um número ou percentual, conta no
+    limite de 2 publicações estatísticas por dia.
 - Imagem: fotos da equipe e quadros (fotos) tirados dos vídeos originais pela rotina de mídias (`midia.py quadros`),
   ou montagem da foto real do Luis com fundo e textos da marca (modo "topo"). Nunca rosto ou corpo do Luis gerado
   por IA (etapa ainda não liberada). Prefira foto do mesmo evento da frase; se for de outro, o `label` cita o tema,
